@@ -1,19 +1,23 @@
 package com.consistenthashing.consistenthash;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public final class HashFunction {
+public class HashFunction {
 
-    public long hash(String key) {
+    public static long hash(String key) {
+        if (key == null) return 0L;
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] digest = md.digest(key.getBytes(StandardCharsets.UTF_8));
-            return ByteBuffer.wrap(digest).getLong();
+            long hash = 0;
+            for (int i = 0; i < 8; i++) {
+                hash = (hash << 8) | (digest[i] & 0xFF);
+            }
+            return hash;
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
+            throw new RuntimeException("SHA-256 algorithm not available", e);
         }
     }
 }

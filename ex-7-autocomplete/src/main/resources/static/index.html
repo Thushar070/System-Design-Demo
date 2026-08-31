@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trie + Redis Autocomplete Search</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #09090b;
+            --card-bg: #121215;
+            --border: #27272a;
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --accent: #ffffff;
+            --accent-hover: #e4e4e7;
+            --hit: #10b981;
+            --miss: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            padding: 32px;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        header { margin-bottom: 28px; }
+        h1 { font-size: 32px; font-weight: 700; color: #ffffff; }
+        .subtitle { color: var(--text-muted); font-size: 15px; margin-top: 6px; }
+
+        .search-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            margin-bottom: 28px;
+            position: relative;
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 16px 20px;
+            padding-right: 140px;
+            background: #18181b;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 18px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-input:focus { border-color: #52525b; }
+
+        .search-meta {
+            position: absolute;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge {
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .badge-hit { background: #022c22; color: #34d399; border: 1px solid #064e3b; }
+        .badge-miss { background: #451a03; color: #fbbf24; border: 1px solid #78350f; }
+
+        .time-tag { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+        /* Dropdown suggestions list */
+        .suggestions-list {
+            margin-top: 16px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #18181b;
+            border: 1px solid var(--border);
+        }
+
+        .suggestion-item {
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+            cursor: pointer;
+        }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: #27272a; }
+
+        .sug-term { font-size: 16px; font-weight: 500; color: #ffffff; }
+        .sug-freq { font-size: 13px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); }
+
+        /* Controls Grid */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .card h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #ffffff; }
+
+        .row { display: flex; gap: 12px; }
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            background: #18181b;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: #52525b; }
+
+        button {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+        .btn-primary { background: #ffffff; color: #000000; }
+        .btn-primary:hover { background: #e4e4e7; }
+        .btn-secondary { background: #18181b; color: #ffffff; border: 1px solid #3f3f46; }
+        .btn-secondary:hover { background: #27272a; }
+
+        .chip-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+        .chip {
+            padding: 5px 12px;
+            background: #18181b;
+            border: 1px solid #3f3f46;
+            border-radius: 999px;
+            font-size: 13px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .chip:hover { background: #27272a; border-color: #52525b; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+        .stat-box { background: #18181b; padding: 14px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
+        .stat-val { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #ffffff; }
+        .stat-lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Prefix Autocomplete Search System</h1>
+        <p class="subtitle">Prefix Trie for Top-K candidate matching + Redis Cache layer for instant responses.</p>
+    </header>
+
+    <!-- Search Section -->
+    <div class="search-section">
+        <div class="search-box">
+            <input id="searchInput" class="search-input" placeholder="Type a search query (e.g., 'app', 'am', 'goog', 'git', 'sys')..." json-autocomplete="off" autofocus>
+            <div class="search-meta">
+                <span id="cacheBadge" class="badge badge-miss">CACHE MISS</span>
+                <span id="timeTag" class="time-tag">0 ms</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between;">
+            <div class="chip-group">
+                <span class="chip" onclick="quickSearch('app')">app</span>
+                <span class="chip" onclick="quickSearch('am')">am</span>
+                <span class="chip" onclick="quickSearch('goog')">goog</span>
+                <span class="chip" onclick="quickSearch('git')">git</span>
+                <span class="chip" onclick="quickSearch('sys')">sys</span>
+                <span class="chip" onclick="quickSearch('re')">re</span>
+                <span class="chip" onclick="quickSearch('sp')">sp</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted);">
+                <span>Top-K:</span>
+                <input id="topKInput" type="number" value="5" min="1" max="10" style="width: 60px; padding: 6px 10px;">
+            </div>
+        </div>
+
+        <div id="suggestionsList" class="suggestions-list" style="display: none;"></div>
+    </div>
+
+    <!-- Management Controls -->
+    <div class="grid">
+        <!-- Add / Boost Term -->
+        <div class="card">
+            <h2>Add or Boost Search Term</h2>
+            <div class="row">
+                <input id="newTerm" placeholder="Search Term (e.g. apple pro)">
+                <input id="newFreq" type="number" placeholder="Frequency" value="25000" style="width: 140px;">
+            </div>
+            <button class="btn-primary" id="addTermBtn" style="margin-top: 14px;">Insert into Trie</button>
+            <div id="addStatus" style="margin-top: 10px; font-size: 13px; color: var(--hit);"></div>
+        </div>
+
+        <!-- Redis Cache Stats -->
+        <div class="card">
+            <h2>Redis Cache Metrics</h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-val" id="statHits" style="color: #34d399;">0</div>
+                    <div class="stat-lbl">Cache Hits</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="statMisses" style="color: #fbbf24;">0</div>
+                    <div class="stat-lbl">Cache Misses</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="statRatio">0%</div>
+                    <div class="stat-lbl">Hit Ratio</div>
+                </div>
+            </div>
+            <button class="btn-secondary" id="clearCacheBtn" style="margin-top: 14px;">Flush Redis Cache</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const api = "/api/autocomplete";
+    const input = document.getElementById("searchInput");
+    const topKInput = document.getElementById("topKInput");
+    const suggestionsList = document.getElementById("suggestionsList");
+
+    async function performSearch() {
+        const query = input.value.trim();
+        const topK = parseInt(topKInput.value) || 5;
+
+        if (!query) {
+            suggestionsList.style.display = "none";
+            return;
+        }
+
+        try {
+            const res = await fetch(`${api}/search?q=${encodeURIComponent(query)}&k=${topK}`);
+            const data = await res.json();
+
+            // Update Cache Badge
+            const badge = document.getElementById("cacheBadge");
+            if (data.cacheSource === "HIT") {
+                badge.className = "badge badge-hit";
+                badge.textContent = "CACHE HIT";
+            } else {
+                badge.className = "badge badge-miss";
+                badge.textContent = "CACHE MISS";
+            }
+
+            document.getElementById("timeTag").textContent = `${data.executionTimeMs} ms`;
+
+            // Render suggestions
+            if (data.suggestions && data.suggestions.length > 0) {
+                suggestionsList.style.display = "block";
+                suggestionsList.innerHTML = data.suggestions.map(s => `
+                    <div class="suggestion-item" onclick="selectSuggestion('${s.term}')">
+                        <span class="sug-term">${highlightPrefix(s.term, query)}</span>
+                        <span class="sug-freq">🔥 ${s.frequency.toLocaleString()} searches</span>
+                    </div>
+                `).join("");
+            } else {
+                suggestionsList.style.display = "block";
+                suggestionsList.innerHTML = `<div class="suggestion-item" style="color: var(--text-muted);">No matching search terms found.</div>`;
+            }
+
+            await updateStats();
+        } catch (e) {
+            console.error("Search failed", e);
+        }
+    }
+
+    function highlightPrefix(text, prefix) {
+        if (!prefix) return text;
+        const index = text.toLowerCase().indexOf(prefix.toLowerCase());
+        if (index === 0) {
+            return `<strong style="color: var(--accent);">${text.substring(0, prefix.length)}</strong>${text.substring(prefix.length)}`;
+        }
+        return text;
+    }
+
+    window.selectSuggestion = function (term) {
+        input.value = term;
+        performSearch();
+    };
+
+    window.quickSearch = function (prefix) {
+        input.value = prefix;
+        performSearch();
+    };
+
+    async function updateStats() {
+        try {
+            const res = await fetch(`${api}/cache/stats`);
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById("statHits").textContent = data.hits;
+                document.getElementById("statMisses").textContent = data.misses;
+                document.getElementById("statRatio").textContent = Math.round(data.hitRatio * 100) + "%";
+            }
+        } catch (e) {}
+    }
+
+    input.addEventListener("input", performSearch);
+    topKInput.addEventListener("change", performSearch);
+
+    document.getElementById("addTermBtn").addEventListener("click", async () => {
+        const term = document.getElementById("newTerm").value.trim();
+        const freq = parseInt(document.getElementById("newFreq").value) || 1000;
+        if (!term) return;
+
+        const res = await fetch(`${api}/terms`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ term, frequency: freq })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById("addStatus").textContent = data.message;
+            document.getElementById("newTerm").value = "";
+            await performSearch();
+        }
+    });
+
+    document.getElementById("clearCacheBtn").addEventListener("click", async () => {
+        await fetch(`${api}/cache`, { method: "DELETE" });
+        await updateStats();
+        if (input.value.trim()) {
+            await performSearch();
+        }
+    });
+
+    updateStats();
+</script>
+</body>
+</html>

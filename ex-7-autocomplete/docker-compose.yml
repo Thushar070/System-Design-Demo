@@ -1,0 +1,26 @@
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: ex-7-redis
+    ports:
+      - "6380:6379"
+    restart: unless-stopped
+    networks:
+      - ac-net
+
+  app:
+    build: .
+    container_name: ex-7-autocomplete-app
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+    depends_on:
+      - redis
+    networks:
+      - ac-net
+
+networks:
+  ac-net:
+    driver: bridge

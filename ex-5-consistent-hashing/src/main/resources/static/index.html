@@ -4,62 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consistent Hashing - Student Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", serif;
-            background: #ece0d1;
-            color: #38220f;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #09090b;
+            color: #f4f4f5;
             padding: 32px;
             min-height: 100vh;
         }
-        h1, h2 { font-weight: 500; letter-spacing: -0.5px; }
-        h1 { font-size: 26px; margin-bottom: 8px; }
-        .subtitle { color: #634832; font-size: 14px; margin-bottom: 28px; }
+        h1, h2 { font-weight: 600; letter-spacing: -0.5px; }
+        h1 { font-size: 26px; margin-bottom: 8px; color: #ffffff; }
+        .subtitle { color: #a1a1aa; font-size: 14px; margin-bottom: 28px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1100px; }
         @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
         .card {
-            background: #dbc1ac;
-            border-radius: 16px;
+            background: #121215;
+            border: 1px solid #27272a;
+            border-radius: 14px;
             padding: 24px;
-            box-shadow: 0 8px 32px rgba(56,34,15,0.12);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
-        .card h2 { font-size: 18px; margin-bottom: 16px; }
-        .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+        .card h2 { font-size: 18px; margin-bottom: 16px; color: #ffffff; }
+        .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
         input, select {
             flex: 1 1 140px;
             padding: 10px 14px;
-            border: 1px solid #967259;
-            border-radius: 10px;
+            border: 1px solid #27272a;
+            border-radius: 8px;
             font-size: 14px;
-            background: #ece0d1;
-            color: #38220f;
+            background: #18181b;
+            color: #ffffff;
             outline: none;
+            transition: border-color 0.2s;
         }
-        input:focus { border-color: #634832; }
+        input:focus { border-color: #52525b; }
         button {
             padding: 10px 18px;
-            background: #634832;
-            color: #ece0d1;
+            background: #ffffff;
+            color: #000000;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.1s;
         }
-        button:hover { background: #38220f; }
-        button:disabled { background: #967259; cursor: not-allowed; }
-        button.ghost { background: transparent; border: 1px solid #967259; }
-        button.ghost:hover { background: #634832; }
+        button:hover { background: #e4e4e7; }
+        button:disabled { background: #3f3f46; color: #71717a; cursor: not-allowed; }
+        button.ghost { background: #18181b; color: #ffffff; border: 1px solid #3f3f46; }
+        button.ghost:hover { background: #27272a; }
         table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #96725940; font-size: 14px; }
-        th { color: #634832; font-weight: 600; }
-        .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-        .badge-new { background: #38220f; color: #ece0d1; }
-        .muted { color: #634832; font-size: 13px; }
-        .error { color: #a04040; font-size: 13px; margin-top: 8px; }
-        .stat { font-weight: 700; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #27272a; font-size: 14px; }
+        th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { color: #f4f4f5; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+        .badge-new { background: #18181b; color: #38bdf8; border: 1px solid #0284c7; }
+        .muted { color: #71717a; font-size: 13px; }
+        .error { color: #f43f5e; font-size: 13px; margin-top: 8px; }
+        .stat { font-weight: 700; color: #ffffff; }
     </style>
 </head>
 <body>
@@ -113,7 +117,7 @@
         <h2>Students <span class="muted">(click refresh after changes)</span></h2>
         <button class="ghost" id="refreshStudents" style="margin-bottom:12px;">Refresh</button>
         <table id="studentsTable">
-            <thead><tr><th>RollNo</th><th>Name</th><th>Dept</th><th>Year</th></tr></thead>
+            <thead><tr><th>RollNo</th><th>Name</th><th>Dept</th><th>Year</th><th>Target Node</th></tr></thead>
             <tbody id="studentsBody"></tbody>
         </table>
     </div>
@@ -173,7 +177,7 @@
     });
 
     document.getElementById("addStudentBtn").addEventListener("click", async () => {
-        const rollNo = parseInt(document.getElementById("sRollNo").value);
+        const rollNo = document.getElementById("sRollNo").value.trim();
         const name = document.getElementById("sName").value.trim();
         const dept = document.getElementById("sDept").value.trim();
         const year = parseInt(document.getElementById("sYear").value);
@@ -212,7 +216,7 @@
         body.innerHTML = "";
         list.forEach(s => {
             const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${s.rollNo}</td><td>${s.name}</td><td>${s.dept}</td><td>${s.year}</td>`;
+            tr.innerHTML = `<td>${s.rollNo}</td><td>${s.name}</td><td>${s.dept}</td><td>${s.year}</td><td><span class="badge badge-new">${s.node || 'N/A'}</span></td>`;
             body.appendChild(tr);
         });
     }

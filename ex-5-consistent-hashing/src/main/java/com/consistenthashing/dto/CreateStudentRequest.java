@@ -1,24 +1,29 @@
 package com.consistenthashing.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class CreateStudentRequest {
-
-    @NotNull
-    private Long rollNo;
-
-    @NotBlank
+    private String rollNo;
     private String name;
-
-    @NotBlank
     private String dept;
-
     private int year;
+
+    public CreateStudentRequest() {}
+
+    public CreateStudentRequest(String rollNo, String name, String dept, int year) {
+        this.rollNo = rollNo;
+        this.name = name;
+        this.dept = dept;
+        this.year = year;
+    }
+
+    public String getRollNo() { return rollNo; }
+    public void setRollNo(String rollNo) { this.rollNo = rollNo; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getDept() { return dept; }
+    public void setDept(String dept) { this.dept = dept; }
+
+    public int getYear() { return year; }
+    public void setYear(int year) { this.year = year; }
 }

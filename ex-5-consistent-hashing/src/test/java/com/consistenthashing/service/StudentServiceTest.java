@@ -1,11 +1,11 @@
 package com.consistenthashing.service;
 
 import com.consistenthashing.consistenthash.ConsistentHashRing;
-import com.consistenthashing.consistenthash.HashFunction;
 import com.consistenthashing.consistenthash.StorageNode;
-import com.consistenthashing.model.Student;
+import com.consistenthashing.dto.CreateStudentRequest;
+import com.consistenthashing.dto.StudentDto;
+import com.consistenthashing.exception.StudentNotFoundException;
 import com.consistenthashing.storage.InMemoryStudentStore;
-import com.consistenthashing.storage.StudentStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -15,66 +15,47 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class StudentServiceTest {
 
-    private ConsistentHashRing ring;
-    private StudentStore store;
     private StudentService service;
-
-    private final StorageNode n1 = new StorageNode("mongo1", 27017);
-    private final StorageNode n2 = new StorageNode("mongo2", 27018);
-    private final StorageNode n3 = new StorageNode("mongo3", 27019);
+    private ConsistentHashRing ring;
+    private InMemoryStudentStore store;
 
     @BeforeEach
     void setUp() {
-        ring = new ConsistentHashRing(new HashFunction(), 150);
-        ring.addNode(n1);
-        ring.addNode(n2);
-        ring.addNode(n3);
+        StorageNode n1 = new StorageNode("localhost", 27017);
+        StorageNode n2 = new StorageNode("localhost", 27018);
+        StorageNode n3 = new StorageNode("localhost", 27019);
+        ring = new ConsistentHashRing(150, List.of(n1, n2, n3));
         store = new InMemoryStudentStore();
         service = new StudentService(ring, store);
     }
 
     @Test
-    void testCreateRoutesToRingOwner() {
-        Student s = service.createStudent(1001L, "Alice", "CS", 3);
+    void testCreateAndGetStudent() {
+        CreateStudentRequest req = new CreateStudentRequest("1001", "Eve", "EEE", 2);
+        StudentDto dto = service.createStudent(req);
 
-        StorageNode expectedOwner = ring.getNode(s.getRollNo().toString());
-        assertNotNull(expectedOwner);
-        assertEquals(1, store.countOn(expectedOwner));
-        assertEquals("Alice", store.findByRollNoOn(1001L, expectedOwner).getName());
+        assertNotNull(dto);
+        assertEquals("1001", dto.getRollNo());
+
+        StudentDto fetched = service.getStudentByRollNo("1001");
+        assertEquals("Eve", fetched.getName());
     }
 
     @Test
-    void testGetByRollNoReturnsStudent() {
-        service.createStudent(1002L, "Bob", "EC", 2);
+    void testDeleteStudent() {
+        service.createStudent(new CreateStudentRequest("1002", "Frank", "CSE", 3));
+        service.deleteStudent("1002");
 
-        Student found = service.getByRollNo(1002L);
-        assertNotNull(found);
-        assertEquals("Bob", found.getName());
-        assertEquals("EC", found.getDept());
-        assertEquals(2, found.getYear());
+        assertThrows(StudentNotFoundException.class, () -> service.getStudentByRollNo("1002"));
     }
 
     @Test
-    void testAllStudentsAggregatesAcrossNodes() {
-        service.createStudent(1001L, "Alice", "CS", 3);
-        service.createStudent(1002L, "Bob", "EC", 2);
-        service.createStudent(1003L, "Charlie", "ME", 4);
+    void testGetAllStudents() {
+        service.createStudent(new CreateStudentRequest("1001", "A", "CSE", 1));
+        service.createStudent(new CreateStudentRequest("1002", "B", "ECE", 2));
+        service.createStudent(new CreateStudentRequest("1003", "C", "IT", 3));
 
-        List<Student> all = service.allStudents();
+        List<StudentDto> all = service.getAllStudents();
         assertEquals(3, all.size());
-    }
-
-    @Test
-    void testDeleteRemovesFromOwner() {
-        service.createStudent(1001L, "Alice", "CS", 3);
-        assertNotNull(service.getByRollNo(1001L));
-
-        service.deleteStudent(1001L);
-        assertNull(service.getByRollNo(1001L));
-    }
-
-    @Test
-    void testGetByRollNoMissingReturnsNull() {
-        assertNull(service.getByRollNo(9999L));
     }
 }

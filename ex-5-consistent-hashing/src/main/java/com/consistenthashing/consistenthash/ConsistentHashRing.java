@@ -1,78 +1,85 @@
 package com.consistenthashing.consistenthash;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.NavigableMap;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 public class ConsistentHashRing {
 
-    private final HashFunction hashFunction;
-    private final int virtualNodesPerNode;
+    private final int numberOfReplicas;
+    private final ConcurrentSkipListMap<Long, StorageNode> circle = new ConcurrentSkipListMap<>();
+    private final Set<StorageNode> physicalNodes = ConcurrentHashMap.newKeySet();
 
-    private final NavigableMap<Long, StorageNode> ring = new TreeMap<>(Long::compareUnsigned);
-    private final Set<StorageNode> physicalNodes = new HashSet<>();
-
-    public ConsistentHashRing(HashFunction hashFunction, int virtualNodesPerNode) {
-        this.hashFunction = hashFunction;
-        this.virtualNodesPerNode = virtualNodesPerNode;
-    }
-
-    public void addNode(StorageNode node) {
-        if (!physicalNodes.add(node)) {
-            return;
-        }
-        for (int i = 0; i < virtualNodesPerNode; i++) {
-            long h = hashFunction.hash(vnodeKey(node, i));
-            ring.put(h, node);
+    public ConsistentHashRing(int numberOfReplicas, Collection<StorageNode> nodes) {
+        this.numberOfReplicas = numberOfReplicas;
+        if (nodes != null) {
+            for (StorageNode node : nodes) {
+                addNode(node);
+            }
         }
     }
 
-    public void removeNode(StorageNode node) {
-        if (!physicalNodes.remove(node)) {
-            return;
+    public synchronized boolean addNode(StorageNode node) {
+        if (node == null || physicalNodes.contains(node)) {
+            return false;
         }
-        for (int i = 0; i < virtualNodesPerNode; i++) {
-            long h = hashFunction.hash(vnodeKey(node, i));
-            ring.remove(h, node);
+        physicalNodes.add(node);
+        for (int i = 0; i < numberOfReplicas; i++) {
+            String vnodeKey = node.getIdentifier() + "#" + i;
+            long hash = HashFunction.hash(vnodeKey);
+            circle.put(hash, node);
         }
+        return true;
+    }
+
+    public synchronized boolean removeNode(StorageNode node) {
+        if (node == null || !physicalNodes.contains(node)) {
+            return false;
+        }
+        physicalNodes.remove(node);
+        for (int i = 0; i < numberOfReplicas; i++) {
+            String vnodeKey = node.getIdentifier() + "#" + i;
+            long hash = HashFunction.hash(vnodeKey);
+            circle.remove(hash, node);
+        }
+        return true;
     }
 
     public StorageNode getNode(String key) {
-        return getNode(hashFunction.hash(key));
-    }
-
-    public StorageNode getNode(long hash) {
-        if (ring.isEmpty()) {
-            throw new IllegalStateException("hash ring is empty");
+        if (circle.isEmpty()) {
+            return null;
         }
-        var entry = ring.ceilingEntry(hash);
-        return entry != null ? entry.getValue() : ring.firstEntry().getValue();
+        if (key == null) {
+            return circle.firstEntry().getValue();
+        }
+        long hash = HashFunction.hash(key);
+        Map.Entry<Long, StorageNode> entry = circle.ceilingEntry(hash);
+        if (entry == null) {
+            entry = circle.firstEntry();
+        }
+        return entry != null ? entry.getValue() : null;
     }
 
-    public List<StorageNode> getPhysicalNodes() {
-        return physicalNodes.stream()
-                .sorted(Comparator.comparing(StorageNode::key))
-                .toList();
+    public Set<StorageNode> getAllNodes() {
+        return Collections.unmodifiableSet(new HashSet<>(physicalNodes));
     }
 
-    public Map<String, Integer> vnodeCounts() {
+    public int getNumberOfReplicas() {
+        return numberOfReplicas;
+    }
+
+    public Map<String, Integer> getVirtualNodeCounts() {
         Map<String, Integer> counts = new HashMap<>();
-        for (StorageNode n : ring.values()) {
-            counts.merge(n.key(), 1, Integer::sum);
+        for (StorageNode node : physicalNodes) {
+            counts.put(node.getIdentifier(), 0);
+        }
+        for (StorageNode node : circle.values()) {
+            counts.put(node.getIdentifier(), counts.getOrDefault(node.getIdentifier(), 0) + 1);
         }
         return counts;
     }
 
-    public int size() {
-        return ring.size();
-    }
-
-    private static String vnodeKey(StorageNode node, int replicaIndex) {
-        return node.key() + "#" + replicaIndex;
+    public int getRingSize() {
+        return circle.size();
     }
 }

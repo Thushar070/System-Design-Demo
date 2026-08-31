@@ -1,3 +1,4 @@
+
 # Exercise 1 — System Design Basics
 
 **Course:** System Design Lab  
@@ -19,6 +20,7 @@ A simple Java project demonstrating basic folder structure, VS Code Java setting
 |   `-- settings.json
 |-- bin/
 |   `-- App.class
+
 |-- src/
 |   `-- App.java
 `-- README.md

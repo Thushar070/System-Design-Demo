@@ -9,5 +9,4 @@ public class ConsistentHashingApplication {
     public static void main(String[] args) {
         SpringApplication.run(ConsistentHashingApplication.class, args);
     }
-
 }

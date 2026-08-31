@@ -1,21 +1,34 @@
 package com.consistenthashing.dto;
 
-import com.consistenthashing.model.Student;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class StudentDto {
-
-    private Long rollNo;
+    private String rollNo;
     private String name;
     private String dept;
     private int year;
+    private String node;
 
-    public static StudentDto from(Student student) {
-        return new StudentDto(student.getRollNo(), student.getName(), student.getDept(), student.getYear());
+    public StudentDto() {}
+
+    public StudentDto(String rollNo, String name, String dept, int year, String node) {
+        this.rollNo = rollNo;
+        this.name = name;
+        this.dept = dept;
+        this.year = year;
+        this.node = node;
     }
+
+    public String getRollNo() { return rollNo; }
+    public void setRollNo(String rollNo) { this.rollNo = rollNo; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getDept() { return dept; }
+    public void setDept(String dept) { this.dept = dept; }
+
+    public int getYear() { return year; }
+    public void setYear(int year) { this.year = year; }
+
+    public String getNode() { return node; }
+    public void setNode(String node) { this.node = node; }
 }

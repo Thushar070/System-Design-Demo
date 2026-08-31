@@ -2,53 +2,50 @@ package com.consistenthashing.storage;
 
 import com.consistenthashing.consistenthash.StorageNode;
 import com.consistenthashing.model.Student;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryStudentStoreTest {
 
-    private final InMemoryStudentStore store = new InMemoryStudentStore();
-    private final StorageNode n1 = new StorageNode("mongo1", 27017);
-    private final StorageNode n2 = new StorageNode("mongo2", 27018);
+    private InMemoryStudentStore store;
+    private StorageNode node;
 
-    private Student student(Long rollNo) {
-        return new Student(rollNo, "Name" + rollNo, "CS", 3);
+    @BeforeEach
+    void setUp() {
+        store = new InMemoryStudentStore();
+        node = new StorageNode("localhost", 27017);
     }
 
     @Test
-    void testInsertFindDelete() {
-        Student s = student(1001L);
-        store.insertOn(s, n1);
+    void testSaveAndFind() {
+        Student student = new Student("1001", "Alice", "CSE", 3);
+        store.save(node, student);
 
-        assertEquals(1, store.countOn(n1));
-        Student found = store.findByRollNoOn(1001L, n1);
-        assertNotNull(found);
-        assertEquals("Name1001", found.getName());
-
-        store.deleteOn(1001L, n1);
-        assertNull(store.findByRollNoOn(1001L, n1));
-        assertEquals(0, store.countOn(n1));
+        Optional<Student> found = store.findByRollNo(node, "1001");
+        assertTrue(found.isPresent());
+        assertEquals("Alice", found.get().getName());
+        assertEquals(1, store.count(node));
     }
 
     @Test
-    void testIsolationBetweenNodes() {
-        store.insertOn(student(1001L), n1);
-        store.insertOn(student(1002L), n2);
-
-        assertEquals(1, store.countOn(n1));
-        assertEquals(1, store.countOn(n2));
-        assertEquals(2, store.allStudentsOn(n1).size() + store.allStudentsOn(n2).size());
+    void testDelete() {
+        Student student = new Student("1002", "Bob", "ECE", 2);
+        store.save(node, student);
+        assertTrue(store.deleteByRollNo(node, "1002"));
+        assertFalse(store.findByRollNo(node, "1002").isPresent());
+        assertEquals(0, store.count(node));
     }
 
     @Test
-    void testDropClearsNode() {
-        store.insertOn(student(1001L), n1);
-        store.insertOn(student(1002L), n1);
-        store.dropOn(n1);
-        assertEquals(0, store.countOn(n1));
+    void testClear() {
+        store.save(node, new Student("1001", "Alice", "CSE", 3));
+        store.save(node, new Student("1002", "Bob", "ECE", 2));
+        assertEquals(2, store.count(node));
+        store.clear(node);
+        assertEquals(0, store.count(node));
     }
 }

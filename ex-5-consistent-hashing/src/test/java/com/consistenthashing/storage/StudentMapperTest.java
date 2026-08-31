@@ -9,29 +9,31 @@ import static org.junit.jupiter.api.Assertions.*;
 class StudentMapperTest {
 
     @Test
-    void testRoundTrip() {
-        Student student = Student.builder()
-                .rollNo(1001L)
-                .name("Alice")
-                .dept("CS")
-                .year(3)
-                .build();
-
+    void testToDocument() {
+        Student student = new Student("1001", "Charlie", "IT", 4);
         Document doc = StudentMapper.toDocument(student);
-        assertEquals(1001L, doc.getLong("_id"));
-        assertEquals("Alice", doc.getString("name"));
-        assertEquals("CS", doc.getString("dept"));
-        assertEquals(3, doc.getInteger("year").intValue());
 
-        Student back = StudentMapper.fromDocument(doc);
-        assertEquals(student.getRollNo(), back.getRollNo());
-        assertEquals(student.getName(), back.getName());
-        assertEquals(student.getDept(), back.getDept());
-        assertEquals(student.getYear(), back.getYear());
+        assertNotNull(doc);
+        assertEquals("1001", doc.getString("_id"));
+        assertEquals("1001", doc.getString("rollNo"));
+        assertEquals("Charlie", doc.getString("name"));
+        assertEquals("IT", doc.getString("dept"));
+        assertEquals(4, doc.getInteger("year"));
     }
 
     @Test
-    void testFromNullDocument() {
-        assertNull(StudentMapper.fromDocument(null));
+    void testToStudent() {
+        Document doc = new Document("_id", "1002")
+                .append("rollNo", "1002")
+                .append("name", "David")
+                .append("dept", "MECH")
+                .append("year", 1);
+
+        Student student = StudentMapper.toStudent(doc);
+        assertNotNull(student);
+        assertEquals("1002", student.getRollNo());
+        assertEquals("David", student.getName());
+        assertEquals("MECH", student.getDept());
+        assertEquals(1, student.getYear());
     }
 }

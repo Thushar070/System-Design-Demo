@@ -108,7 +108,7 @@ services:
   app:
     build: .
     ports:
-      - 8080:8080
+      - 8085:8085
     environment:
       APP_NODES: mongo1:27017,mongo2:27017,mongo3:27017
       APP_MONGO4_HOST: mongo4

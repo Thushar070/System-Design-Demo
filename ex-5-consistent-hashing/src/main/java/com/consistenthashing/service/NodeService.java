@@ -2,142 +2,105 @@ package com.consistenthashing.service;
 
 import com.consistenthashing.consistenthash.ConsistentHashRing;
 import com.consistenthashing.consistenthash.StorageNode;
+import com.consistenthashing.dto.MigrationReport;
 import com.consistenthashing.model.Student;
 import com.consistenthashing.storage.StudentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-@Service
 public class NodeService {
 
     private static final Logger log = LoggerFactory.getLogger(NodeService.class);
 
-    private static final String MONGO4_DISPLAY = "mongo4:27020";
+    private final ConsistentHashRing hashRing;
+    private final StudentStore studentStore;
+    private final DistributionService distributionService;
 
-    private final ConsistentHashRing ring;
-    private final StudentStore store;
-    private final String mongo4Host;
-    private final int mongo4Port;
-
-    public NodeService(ConsistentHashRing ring, StudentStore store,
-                       @Value("${app.mongo4.host:localhost}") String mongo4Host,
-                       @Value("${app.mongo4.port:27020}") int mongo4Port) {
-        this.ring = ring;
-        this.store = store;
-        this.mongo4Host = mongo4Host;
-        this.mongo4Port = mongo4Port;
+    public NodeService(ConsistentHashRing hashRing, StudentStore studentStore, DistributionService distributionService) {
+        this.hashRing = hashRing;
+        this.studentStore = studentStore;
+        this.distributionService = distributionService;
     }
 
-    public record NodeChange(String nodeKey, int migrated, Map<String, Long> before, Map<String, Long> after) {
-    }
+    public MigrationReport addNode(String host, int port) {
+        StorageNode newNode = new StorageNode(host, port);
 
-    public List<StorageNode> listNodes() {
-        return ring.getPhysicalNodes();
-    }
-
-    public Map<String, Integer> vnodeCounts() {
-        return ring.vnodeCounts();
-    }
-
-    private Map<String, Long> renameKey(Map<String, Long> map, String oldKey, String newKey) {
-        Map<String, Long> renamed = new LinkedHashMap<>();
-        for (Map.Entry<String, Long> entry : map.entrySet()) {
-            if (entry.getKey().equals(oldKey)) {
-                renamed.put(newKey, entry.getValue());
-            } else {
-                renamed.put(entry.getKey(), entry.getValue());
-            }
+        if (!studentStore.isReachable(newNode)) {
+            throw new IllegalArgumentException("Cannot connect to MongoDB node at " + newNode.getIdentifier() +
+                ". Ensure the host container is running (e.g. mongo1, mongo2, mongo3, mongo4).");
         }
-        return renamed;
-    }
 
-    private StorageNode resolveNode(String host, int port) {
-        if ("mongo4".equalsIgnoreCase(host)) {
-            return new StorageNode(mongo4Host, mongo4Port);
+        Map<String, Long> beforeCounts = distributionService.getDistributionReport().getCounts();
+
+        boolean added = hashRing.addNode(newNode);
+        if (!added) {
+            log.info("Node {} already registered on hash ring", newNode.getIdentifier());
+            Map<String, Long> afterCounts = distributionService.getDistributionReport().getCounts();
+            return new MigrationReport(0, beforeCounts, afterCounts);
         }
-        return new StorageNode(host, port);
-    }
+        log.info("Added node {} to the hash ring", newNode.getIdentifier());
 
-    public NodeChange addNode(String host, int port) {
-        boolean isMongo4 = "mongo4".equalsIgnoreCase(host);
-        StorageNode node = resolveNode(host, port);
-        if (ring.getPhysicalNodes().contains(node)) {
-            throw new IllegalArgumentException("node already registered: " + node.key());
-        }
-        Map<String, Long> before = snapshot();
-        ring.addNode(node);
-        log.info("Added node {} to the hash ring", node.key());
+        int migratedCount = 0;
+        try {
+            Set<StorageNode> allNodes = hashRing.getAllNodes();
 
-        int migrated = migrateOffExistingNodes(List.copyOf(ring.getPhysicalNodes()), node);
-        Map<String, Long> after = snapshot();
-        log.info("Add-node migration complete: {} record(s) moved to {}", migrated, node.key());
+            for (StorageNode existingNode : allNodes) {
+                if (existingNode.equals(newNode)) continue;
 
-        if (isMongo4) {
-            before = renameKey(before, node.key(), MONGO4_DISPLAY);
-            after = renameKey(after, node.key(), MONGO4_DISPLAY);
-            return new NodeChange(MONGO4_DISPLAY, migrated, before, after);
-        }
-        return new NodeChange(node.key(), migrated, before, after);
-    }
-
-    public NodeChange removeNode(String host, int port) {
-        boolean isMongo4 = "mongo4".equalsIgnoreCase(host);
-        StorageNode node = resolveNode(host, port);
-        Map<String, Long> before = snapshot();
-
-        List<Student> stranded = store.allStudentsOn(node);
-        ring.removeNode(node);
-        log.info("Removed node {} from the hash ring; relocating {} record(s)", node.key(), stranded.size());
-
-        int migrated = 0;
-        for (Student s : stranded) {
-            StorageNode newOwner = ring.getNode(s.getRollNo().toString());
-            store.insertOn(s, newOwner);
-            migrated++;
-        }
-        store.dropOn(node);
-
-        Map<String, Long> after = snapshot();
-        log.info("Remove-node migration complete: {} record(s) relocated", migrated);
-
-        if (isMongo4) {
-            before = renameKey(before, node.key(), MONGO4_DISPLAY);
-            after = renameKey(after, node.key(), MONGO4_DISPLAY);
-            return new NodeChange(MONGO4_DISPLAY, migrated, before, after);
-        }
-        return new NodeChange(node.key(), migrated, before, after);
-    }
-
-    private int migrateOffExistingNodes(List<StorageNode> nodes, StorageNode newNode) {
-        int migrated = 0;
-        for (StorageNode existing : nodes) {
-            if (existing.equals(newNode)) {
-                continue;
-            }
-            for (Student s : store.allStudentsOn(existing)) {
-                StorageNode newOwner = ring.getNode(s.getRollNo().toString());
-                if (!newOwner.equals(existing)) {
-                    store.insertOn(s, newOwner);
-                    store.deleteOn(s.getRollNo(), existing);
-                    migrated++;
+                List<Student> students = studentStore.findAll(existingNode);
+                for (Student student : students) {
+                    StorageNode targetNode = hashRing.getNode(student.getRollNo());
+                    if (targetNode.equals(newNode)) {
+                        studentStore.save(newNode, student);
+                        studentStore.deleteByRollNo(existingNode, student.getRollNo());
+                        migratedCount++;
+                    }
                 }
             }
+        } catch (Exception e) {
+            hashRing.removeNode(newNode);
+            throw new RuntimeException("Migration failed while adding node " + newNode.getIdentifier() + ": " + e.getMessage(), e);
         }
-        return migrated;
+
+        log.info("Add-node migration complete: {} record(s) moved to {}", migratedCount, newNode.getIdentifier());
+        Map<String, Long> afterCounts = distributionService.getDistributionReport().getCounts();
+        return new MigrationReport(migratedCount, beforeCounts, afterCounts);
     }
 
-    private Map<String, Long> snapshot() {
-        Map<String, Long> snap = new LinkedHashMap<>();
-        for (StorageNode n : ring.getPhysicalNodes()) {
-            String key = n.key();
-            snap.put(key, store.countOn(n));
+    public MigrationReport removeNode(String host, int port) {
+        StorageNode targetNode = new StorageNode(host, port);
+        Map<String, Long> beforeCounts = distributionService.getDistributionReport().getCounts();
+
+        if (!hashRing.getAllNodes().contains(targetNode)) {
+            log.info("Node {} not found on hash ring", targetNode.getIdentifier());
+            Map<String, Long> afterCounts = distributionService.getDistributionReport().getCounts();
+            return new MigrationReport(0, beforeCounts, afterCounts);
         }
-        return snap;
+
+        List<Student> orphanStudents = studentStore.findAll(targetNode);
+        log.info("Removing node {} from ring; relocating {} record(s)", targetNode.getIdentifier(), orphanStudents.size());
+
+        hashRing.removeNode(targetNode);
+        int relocatedCount = 0;
+
+        for (Student student : orphanStudents) {
+            StorageNode newOwner = hashRing.getNode(student.getRollNo());
+            if (newOwner != null && !newOwner.equals(targetNode)) {
+                studentStore.save(newOwner, student);
+                relocatedCount++;
+            }
+        }
+
+        studentStore.clear(targetNode);
+
+        log.info("Remove-node migration complete: {} record(s) relocated", relocatedCount);
+        Map<String, Long> afterCounts = distributionService.getDistributionReport().getCounts();
+        return new MigrationReport(relocatedCount, beforeCounts, afterCounts);
+    }
+
+    public Collection<StorageNode> getRegisteredNodes() {
+        return hashRing.getAllNodes();
     }
 }

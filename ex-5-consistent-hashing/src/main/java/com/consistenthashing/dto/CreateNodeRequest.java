@@ -1,17 +1,19 @@
 package com.consistenthashing.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class CreateNodeRequest {
-
-    @NotBlank
     private String host;
-
     private int port;
+
+    public CreateNodeRequest() {}
+
+    public CreateNodeRequest(String host, int port) {
+        this.host = host;
+        this.port = port;
+    }
+
+    public String getHost() { return host; }
+    public void setHost(String host) { this.host = host; }
+
+    public int getPort() { return port; }
+    public void setPort(int port) { this.port = port; }
 }

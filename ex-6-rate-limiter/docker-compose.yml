@@ -1,0 +1,26 @@
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: ex-6-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - rl-net
+
+  app:
+    build: .
+    container_name: ex-6-rate-limiter-app
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+    depends_on:
+      - redis
+    networks:
+      - rl-net
+
+networks:
+  rl-net:
+    driver: bridge
