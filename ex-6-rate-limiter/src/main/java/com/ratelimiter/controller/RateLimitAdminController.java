@@ -13,9 +13,22 @@ import java.util.Map;
 public class RateLimitAdminController {
 
     private final TokenBucketRateLimiter rateLimiter;
+    private final org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
 
-    public RateLimitAdminController(TokenBucketRateLimiter rateLimiter) {
+    public RateLimitAdminController(TokenBucketRateLimiter rateLimiter, org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate) {
         this.rateLimiter = rateLimiter;
+        this.redisTemplate = redisTemplate;
+    }
+
+    @GetMapping("/debug/{clientId}")
+    public ResponseEntity<Map<String, Object>> debug(@PathVariable String clientId) {
+        String key = "ratelimit:" + clientId;
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(key);
+        return ResponseEntity.ok(Map.of(
+                "key", key,
+                "entries", entries,
+                "status", rateLimiter.getStatus(clientId)
+        ));
     }
 
     @GetMapping("/status/{clientId}")

@@ -95,10 +95,11 @@ public class TokenBucketRateLimiter {
         }
 
         try {
-            List<Object> values = redisTemplate.opsForHash().multiGet(key, List.of("tokens", "last_refill"));
-            if (values != null && values.size() == 2 && values.get(0) != null && values.get(1) != null) {
-                double tokens = Double.parseDouble(values.get(0).toString());
-                double lastRefill = Double.parseDouble(values.get(1).toString());
+            Object tokenObj = redisTemplate.opsForHash().get(key, "tokens");
+            Object refillObj = redisTemplate.opsForHash().get(key, "last_refill");
+            if (tokenObj != null && refillObj != null) {
+                double tokens = Double.parseDouble(tokenObj.toString());
+                double lastRefill = Double.parseDouble(refillObj.toString());
                 long now = Instant.now().getEpochSecond();
                 double delta = Math.max(0, now - lastRefill);
                 double exactTokens = Math.min(capacity, tokens + delta * refillRate);
