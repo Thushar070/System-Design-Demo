@@ -3,6 +3,7 @@ package com.ratelimiter.dto;
 public class TokenBucketStatus {
     private boolean allowed;
     private long remainingTokens;
+    private double currentTokens;
     private long capacity;
     private double refillRate;
     private String clientId;
@@ -10,15 +11,17 @@ public class TokenBucketStatus {
     public TokenBucketStatus() {}
 
     public TokenBucketStatus(boolean allowed, long remainingTokens, long capacity, String clientId) {
-        this.allowed = allowed;
-        this.remainingTokens = remainingTokens;
-        this.capacity = capacity;
-        this.clientId = clientId;
+        this(allowed, remainingTokens, (double) remainingTokens, capacity, 2.0, clientId);
     }
 
     public TokenBucketStatus(boolean allowed, long remainingTokens, long capacity, double refillRate, String clientId) {
+        this(allowed, remainingTokens, (double) remainingTokens, capacity, refillRate, clientId);
+    }
+
+    public TokenBucketStatus(boolean allowed, long remainingTokens, double currentTokens, long capacity, double refillRate, String clientId) {
         this.allowed = allowed;
         this.remainingTokens = remainingTokens;
+        this.currentTokens = currentTokens;
         this.capacity = capacity;
         this.refillRate = refillRate;
         this.clientId = clientId;
@@ -29,6 +32,9 @@ public class TokenBucketStatus {
 
     public long getRemainingTokens() { return remainingTokens; }
     public void setRemainingTokens(long remainingTokens) { this.remainingTokens = remainingTokens; }
+
+    public double getCurrentTokens() { return currentTokens; }
+    public void setCurrentTokens(double currentTokens) { this.currentTokens = currentTokens; }
 
     public long getCapacity() { return capacity; }
     public void setCapacity(long capacity) { this.capacity = capacity; }

@@ -101,9 +101,10 @@ public class TokenBucketRateLimiter {
                 double lastRefill = Double.parseDouble(values.get(1).toString());
                 long now = Instant.now().getEpochSecond();
                 double delta = Math.max(0, now - lastRefill);
-                long currentTokens = Math.min(capacity, (long) Math.floor(tokens + delta * refillRate));
+                double exactTokens = Math.min(capacity, tokens + delta * refillRate);
+                long remaining = (long) Math.floor(exactTokens);
 
-                return new TokenBucketStatus(true, currentTokens, capacity, refillRate, clientId);
+                return new TokenBucketStatus(true, remaining, exactTokens, capacity, refillRate, clientId);
             }
         } catch (Exception e) {
             log.warn("Could not fetch status from Redis for client={}: {}", clientId, e.getMessage());
