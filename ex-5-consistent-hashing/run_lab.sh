@@ -17,6 +17,13 @@ for node in mongo1 mongo2 mongo3 mongo4; do
 done
 
 echo ""
+echo "Packaging Spring Boot application target JAR..."
+if [ -d "/usr/lib/jvm/java-21-openjdk-amd64" ]; then
+    JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 mvn -q -DskipTests package
+else
+    mvn -q -DskipTests package
+fi
+
 echo "Building & starting Spring Boot app (docker on port 8085)..."
 docker compose up -d --build --force-recreate app
 
