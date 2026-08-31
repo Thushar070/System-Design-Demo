@@ -345,7 +345,9 @@
                 headers: { "X-Client-ID": cId }
             });
             const data = await res.json();
-            const remHeader = res.headers.get("X-RateLimit-Remaining") || data.remainingTokens;
+            const remHeader = (data.remainingTokens !== undefined && data.remainingTokens !== null) 
+                ? data.remainingTokens 
+                : (res.headers.get("X-RateLimit-Remaining") || 0);
 
             addLogEntry(cId, res.status, data.status, remHeader, data.message);
             await updateStatus();
@@ -355,10 +357,9 @@
     }
 
     async function sendBurst() {
-        const cId = getClientId();
         for (let i = 0; i < 15; i++) {
-            sendSingleRequest();
-            await new Promise(r => setTimeout(r, 20));
+            await sendSingleRequest();
+            await new Promise(r => setTimeout(r, 30));
         }
     }
 

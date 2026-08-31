@@ -40,6 +40,10 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
         response.setHeader("X-RateLimit-Limit", String.valueOf(status.getCapacity()));
         response.setHeader("X-RateLimit-Remaining", String.valueOf(status.getRemainingTokens()));
+        response.setHeader("Access-Control-Expose-Headers", "X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After");
+
+        request.setAttribute("X-RateLimit-Limit", status.getCapacity());
+        request.setAttribute("X-RateLimit-Remaining", status.getRemainingTokens());
 
         if (!status.isAllowed()) {
             response.setStatus(429); // HTTP 429 Too Many Requests

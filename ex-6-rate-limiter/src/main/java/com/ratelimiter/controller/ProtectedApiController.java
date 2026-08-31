@@ -13,22 +13,16 @@ public class ProtectedApiController {
 
     @GetMapping("/greeting")
     public ResponseEntity<RateLimitResponse> getGreeting(HttpServletRequest request) {
-        String clientId = request.getHeader("X-Client-ID");
-        if (clientId == null || clientId.trim().isEmpty()) {
-            clientId = request.getRemoteAddr();
-        }
-
-        String remainingStr = responseHeader(request, "X-RateLimit-Remaining");
-        long remaining = remainingStr != null ? Long.parseLong(remainingStr) : 0;
-        String capStr = responseHeader(request, "X-RateLimit-Limit");
-        long cap = capStr != null ? Long.parseLong(capStr) : 10;
+        String clientId = getClientId(request);
+        long remaining = getRemaining(request);
+        long capacity = getCapacity(request);
 
         RateLimitResponse response = new RateLimitResponse(
                 "ALLOWED",
                 "Request successful! Hello from Protected API Endpoint.",
                 clientId,
                 remaining,
-                cap
+                capacity
         );
 
         return ResponseEntity.ok(response);
@@ -36,23 +30,46 @@ public class ProtectedApiController {
 
     @GetMapping("/data")
     public ResponseEntity<RateLimitResponse> getData(HttpServletRequest request) {
-        String clientId = request.getHeader("X-Client-ID");
-        if (clientId == null || clientId.trim().isEmpty()) {
-            clientId = request.getRemoteAddr();
-        }
+        String clientId = getClientId(request);
+        long remaining = getRemaining(request);
+        long capacity = getCapacity(request);
 
         RateLimitResponse response = new RateLimitResponse(
                 "ALLOWED",
                 "Successfully accessed protected sensitive data payload.",
                 clientId,
-                10,
-                10
+                remaining,
+                capacity
         );
 
         return ResponseEntity.ok(response);
     }
 
-    private String responseHeader(HttpServletRequest request, String name) {
-        return request.getHeader(name);
+    private String getClientId(HttpServletRequest request) {
+        String clientId = request.getHeader("X-Client-ID");
+        if (clientId == null || clientId.trim().isEmpty()) {
+            clientId = request.getRemoteAddr();
+        }
+        return clientId;
+    }
+
+    private long getRemaining(HttpServletRequest request) {
+        Object attr = request.getAttribute("X-RateLimit-Remaining");
+        if (attr instanceof Number) {
+            return ((Number) attr).longValue();
+        } else if (attr != null) {
+            try { return Long.parseLong(attr.toString()); } catch (Exception ignored) {}
+        }
+        return 0;
+    }
+
+    private long getCapacity(HttpServletRequest request) {
+        Object attr = request.getAttribute("X-RateLimit-Limit");
+        if (attr instanceof Number) {
+            return ((Number) attr).longValue();
+        } else if (attr != null) {
+            try { return Long.parseLong(attr.toString()); } catch (Exception ignored) {}
+        }
+        return 10;
     }
 }
