@@ -87,10 +87,11 @@
         <h2>Add Storage Node</h2>
         <div class="row">
             <input id="nHost" placeholder="Host (e.g. mongo4)" value="mongo4">
-            <input id="nPort" placeholder="Port" type="number" value="27020">
+            <input id="nPort" placeholder="Port" type="number" value="27017">
             <button id="addNodeBtn">Add Node</button>
         </div>
         <div class="error" id="nodeError"></div>
+        <p class="muted" style="margin-top:8px;">Tip: In Docker Compose, use <code>mongo4</code> port <code>27017</code>. If running on host, use <code>localhost</code> port <code>27020</code>.</p>
     </div>
 </div>
 
