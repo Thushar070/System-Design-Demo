@@ -7,7 +7,7 @@ A Spring Boot application implementing a distributed **API Rate Limiter** using 
 ---
 
 ## Folder Location
-`/home/billy/Data/Projects/System-Design-Exercises/ex-6-rate-limiter`
+`./ex-6-rate-limiter`
 
 ---
 
@@ -15,7 +15,7 @@ A Spring Boot application implementing a distributed **API Rate Limiter** using 
 
 ```bash
 # 1. Navigate to directory
-cd /home/billy/Data/Projects/System-Design-Exercises/ex-6-rate-limiter
+cd ex-6-rate-limiter
 
 # 2. Run one-command automated lab demo (Redis + App in Docker + traffic tests)
 ./run_lab.sh

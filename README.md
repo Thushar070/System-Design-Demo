@@ -2,16 +2,15 @@
 
 **Course:** System Design Lab  
 **Subject Code:** CS3461  
-**Team:** Blastorz  
 
 ## Team Members
 
-| # | Name | Register Number |
-|---|------|----------------|
-| 1 | Tushyent N P | 3122 24 5001 189 |
-| 2 | Venkat Prabhu S | 3122 24 5001 196 |
-| 3 | Vignesh Raaj S | 3122 24 5001 198 |
-| 4 | Vino S R Harrison | 3122 24 5001 199 |
+| # | Name |
+|---|------|
+| 1 | Thushar TL |
+| 2 | Rohith Saravanan |
+| 3 | VasanthKumar S |
+| 4 | Vasanth K |
 
 ## Exercises
 
@@ -22,3 +21,5 @@
 | 3 | [ex-3-url-shortener-redis](./ex-3-url-shortener-redis/) | URL Shortener with Redis caching — Spring Boot + MongoDB + Redis + vanilla JS frontend |
 | 4 | [ex-4-sharding](./ex-4-sharding/) | MongoDB Horizontal Sharding — Docker Compose sharded cluster with performance comparison |
 | 5 | [ex-5-consistent-hashing](./ex-5-consistent-hashing/) | Application-Level Consistent Hashing — Spring Boot hash ring over standalone MongoDB nodes |
+| 6 | [ex-6-rate-limiter](./ex-6-rate-limiter/) | API Rate Limiter — Spring Boot + Token Bucket Algorithm + Redis + Lua Scripting |
+| 7 | [ex-7-autocomplete](./ex-7-autocomplete/) | Autocomplete Search System — Spring Boot + Trie Data Structure + Redis Caching |

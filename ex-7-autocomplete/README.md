@@ -7,7 +7,7 @@ A Spring Boot application implementing an **Autocomplete Search System** using a
 ---
 
 ## Folder Location
-`/home/billy/Data/Projects/System-Design-Exercises/ex-7-autocomplete`
+`./ex-7-autocomplete`
 
 ---
 
@@ -15,7 +15,7 @@ A Spring Boot application implementing an **Autocomplete Search System** using a
 
 ```bash
 # 1. Navigate to directory
-cd /home/billy/Data/Projects/System-Design-Exercises/ex-7-autocomplete
+cd ex-7-autocomplete
 
 # 2. Run one-command automated lab demo (Redis + App on Port 8087)
 ./run_lab.sh
