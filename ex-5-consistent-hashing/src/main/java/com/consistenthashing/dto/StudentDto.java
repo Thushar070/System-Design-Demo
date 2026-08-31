@@ -1,11 +1,14 @@
 package com.consistenthashing.dto;
 
+import com.consistenthashing.consistenthash.HashFunction;
+
 public class StudentDto {
     private String rollNo;
     private String name;
     private String dept;
     private int year;
     private String node;
+    private long hashValue;
 
     public StudentDto() {}
 
@@ -15,6 +18,16 @@ public class StudentDto {
         this.dept = dept;
         this.year = year;
         this.node = node;
+        this.hashValue = rollNo != null ? HashFunction.hash(rollNo) : 0;
+    }
+
+    public StudentDto(String rollNo, String name, String dept, int year, String node, long hashValue) {
+        this.rollNo = rollNo;
+        this.name = name;
+        this.dept = dept;
+        this.year = year;
+        this.node = node;
+        this.hashValue = hashValue;
     }
 
     public String getRollNo() { return rollNo; }
@@ -31,4 +44,7 @@ public class StudentDto {
 
     public String getNode() { return node; }
     public void setNode(String node) { this.node = node; }
+
+    public long getHashValue() { return hashValue; }
+    public void setHashValue(long hashValue) { this.hashValue = hashValue; }
 }

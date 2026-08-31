@@ -30,21 +30,14 @@ public class StudentSeeder implements CommandLineRunner {
                 return;
             }
 
-            log.info("StudentSeeder: Seeding 20 student records across storage nodes...");
-            String[] depts = {"CSE", "ECE", "IT", "EEE", "MECH"};
+            log.info("StudentSeeder: Adding 3 initial sample student records...");
+            studentService.createStudent(new CreateStudentRequest("101", "Alice", "CSE", 3));
+            studentService.createStudent(new CreateStudentRequest("102", "Bob", "ECE", 2));
+            studentService.createStudent(new CreateStudentRequest("103", "Charlie", "IT", 4));
 
-            for (int i = 1001; i <= 1020; i++) {
-                String rollNo = String.valueOf(i);
-                String name = "Student_" + i;
-                String dept = depts[(i - 1001) % depts.length];
-                int year = ((i - 1001) % 4) + 1;
-
-                studentService.createStudent(new CreateStudentRequest(rollNo, name, dept, year));
-            }
-
-            log.info("StudentSeeder: Completed seeding 20 records.");
+            log.info("StudentSeeder: Sample seeding complete.");
         } catch (Exception e) {
-            log.warn("StudentSeeder: Could not seed data (MongoDB containers might still be starting): {}", e.getMessage());
+            log.warn("StudentSeeder: Skipping seeding: {}", e.getMessage());
         }
     }
 }

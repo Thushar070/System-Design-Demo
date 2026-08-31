@@ -32,7 +32,7 @@ public class StudentService {
         }
         StorageNode targetNode = hashRing.getNode(req.getRollNo());
         if (targetNode == null) {
-            throw new IllegalStateException("No storage nodes registered on the hash ring");
+            throw new IllegalStateException("No storage nodes registered on the hash ring. Add a node first!");
         }
 
         Student student = new Student(req.getRollNo(), req.getName(), req.getDept(), req.getYear());
@@ -50,7 +50,15 @@ public class StudentService {
 
         Optional<Student> studentOpt = studentStore.findByRollNo(targetNode, rollNo);
         if (studentOpt.isEmpty()) {
-            throw new StudentNotFoundException("Student with rollNo " + rollNo + " not found on node " + targetNode.getIdentifier());
+            // Search all nodes as fallback
+            for (StorageNode node : hashRing.getAllNodes()) {
+                Optional<Student> s = studentStore.findByRollNo(node, rollNo);
+                if (s.isPresent()) {
+                    Student student = s.get();
+                    return new StudentDto(student.getRollNo(), student.getName(), student.getDept(), student.getYear(), node.getIdentifier());
+                }
+            }
+            throw new StudentNotFoundException("Student with rollNo " + rollNo + " not found");
         }
 
         Student student = studentOpt.get();
@@ -58,16 +66,23 @@ public class StudentService {
     }
 
     public void deleteStudent(String rollNo) {
+        boolean deleted = false;
         StorageNode targetNode = hashRing.getNode(rollNo);
-        if (targetNode == null) {
-            throw new IllegalStateException("No storage nodes registered on the hash ring");
+        if (targetNode != null) {
+            deleted = studentStore.deleteByRollNo(targetNode, rollNo);
         }
-
-        boolean deleted = studentStore.deleteByRollNo(targetNode, rollNo);
         if (!deleted) {
-            throw new StudentNotFoundException("Student with rollNo " + rollNo + " not found on node " + targetNode.getIdentifier());
+            for (StorageNode node : hashRing.getAllNodes()) {
+                if (studentStore.deleteByRollNo(node, rollNo)) {
+                    deleted = true;
+                    break;
+                }
+            }
         }
-        log.info("Deleted student rollNo={} from {}", rollNo, targetNode.getIdentifier());
+        if (!deleted) {
+            throw new StudentNotFoundException("Student with rollNo " + rollNo + " not found");
+        }
+        log.info("Deleted student rollNo={}", rollNo);
     }
 
     public List<StudentDto> getAllStudents() {

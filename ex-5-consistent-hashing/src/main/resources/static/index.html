@@ -3,123 +3,235 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consistent Hashing - Student Store</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Consistent Hashing - Distributed Student Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #09090b;
+            --card-bg: #121215;
+            --border: #27272a;
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --accent: #38bdf8;
+            --success: #10b981;
+            --danger: #f43f5e;
+            --warning: #f59e0b;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #09090b;
-            color: #f4f4f5;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
             padding: 32px;
             min-height: 100vh;
         }
-        h1, h2 { font-weight: 600; letter-spacing: -0.5px; }
-        h1 { font-size: 26px; margin-bottom: 8px; color: #ffffff; }
-        .subtitle { color: #a1a1aa; font-size: 14px; margin-bottom: 28px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1100px; }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        header { margin-bottom: 32px; }
+        h1 { font-size: 32px; font-weight: 700; color: #ffffff; }
+        .subtitle { color: var(--text-muted); font-size: 15px; margin-top: 6px; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
         @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
         .card {
-            background: #121215;
-            border: 1px solid #27272a;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
             border-radius: 14px;
             padding: 24px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            margin-bottom: 24px;
         }
-        .card h2 { font-size: 18px; margin-bottom: 16px; color: #ffffff; }
-        .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-        input, select {
-            flex: 1 1 140px;
-            padding: 10px 14px;
-            border: 1px solid #27272a;
-            border-radius: 8px;
-            font-size: 14px;
-            background: #18181b;
+
+        .card h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
             color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .row { display: flex; gap: 12px; flex-wrap: wrap; }
+        input, select {
+            flex: 1 1 120px;
+            padding: 12px 16px;
+            background: #18181b;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 14px;
             outline: none;
             transition: border-color 0.2s;
         }
-        input:focus { border-color: #52525b; }
+        input:focus, select:focus { border-color: #52525b; }
+
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
         button {
             padding: 10px 18px;
-            background: #ffffff;
-            color: #000000;
-            border: none;
             border-radius: 8px;
+            font-family: inherit;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
+            border: none;
             transition: background 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        button:hover { background: #e4e4e7; }
-        button:disabled { background: #3f3f46; color: #71717a; cursor: not-allowed; }
-        button.ghost { background: #18181b; color: #ffffff; border: 1px solid #3f3f46; }
-        button.ghost:hover { background: #27272a; }
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #27272a; font-size: 14px; }
-        th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-        td { color: #f4f4f5; }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-        .badge-new { background: #18181b; color: #38bdf8; border: 1px solid #0284c7; }
-        .muted { color: #71717a; font-size: 13px; }
-        .error { color: #f43f5e; font-size: 13px; margin-top: 8px; }
+
+        .btn-primary { background: #ffffff; color: #000000; }
+        .btn-primary:hover { background: #e4e4e7; }
+
+        .btn-secondary { background: #18181b; color: #ffffff; border: 1px solid #3f3f46; }
+        .btn-secondary:hover { background: #27272a; }
+
+        .btn-danger { background: #18181b; color: #f43f5e; border: 1px solid #881337; }
+        .btn-danger:hover { background: #27272a; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+        th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .badge-node { background: #0c4a6e; color: #38bdf8; border: 1px solid #0369a1; }
+        .badge-hash { background: #18181b; color: #a1a1aa; border: 1px solid #3f3f46; font-family: 'JetBrains Mono', monospace; }
+
+        .mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
         .stat { font-weight: 700; color: #ffffff; }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 10px;
+            background: #18181b;
+            border-radius: 999px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            border-radius: 999px;
+            transition: width 0.3s ease;
+        }
+
+        .status-msg { margin-top: 12px; font-size: 13px; color: #34d399; font-weight: 500; }
+        .error-msg { margin-top: 12px; font-size: 13px; color: #f87171; font-weight: 500; }
     </style>
 </head>
 <body>
-<h1>Distributed Student Store (Consistent Hashing)</h1>
-<p class="subtitle">Records route to MongoDB storage nodes by hashing the student RollNo onto a virtual-node hash ring.</p>
+<div class="container">
+    <header>
+        <h1>Distributed Student Store (Consistent Hashing)</h1>
+        <p class="subtitle">Keys (RollNo) and Storage Nodes hash onto a virtual-node ring. Rebalancing moves only min-fraction data when nodes change.</p>
+    </header>
 
-<div class="grid">
-    <div class="card">
-        <h2>Add Student</h2>
-        <div class="row">
-            <input id="sRollNo" placeholder="RollNo">
-            <input id="sName" placeholder="Name">
-            <input id="sDept" placeholder="Dept">
-            <input id="sYear" placeholder="Year" type="number" min="1" max="4">
-            <button id="addStudentBtn">Add</button>
+    <div class="grid">
+        <!-- Add Student Card -->
+        <div class="card" style="margin-bottom:0;">
+            <h2>Add Student Record</h2>
+            <div class="row">
+                <input id="sRollNo" placeholder="RollNo (e.g. 101)" value="">
+                <input id="sName" placeholder="Student Name" value="">
+                <input id="sDept" placeholder="Department" value="CSE">
+                <input id="sYear" placeholder="Year (1-4)" type="number" min="1" max="4" value="3">
+            </div>
+            <div class="btn-group">
+                <button class="btn-primary" id="addStudentBtn">Add Student</button>
+            </div>
+            <div id="studentMsg"></div>
         </div>
-        <div class="error" id="studentError"></div>
-    </div>
 
-    <div class="card">
-        <h2>Add Storage Node</h2>
-        <div class="row">
-            <input id="nHost" placeholder="Host (e.g. mongo4)" value="mongo4">
-            <input id="nPort" placeholder="Port" type="number" value="27017">
-            <button id="addNodeBtn">Add Node</button>
+        <!-- Add Node Card -->
+        <div class="card" style="margin-bottom:0;">
+            <h2>Add Storage Node</h2>
+            <div class="row">
+                <input id="nHost" placeholder="Host / Node Name (e.g. mongo4)" value="mongo4">
+                <input id="nPort" placeholder="Port" type="number" value="27017">
+            </div>
+            <div class="btn-group">
+                <button class="btn-primary" id="addNodeBtn">Add Storage Node</button>
+            </div>
+            <div id="nodeMsg"></div>
+            <p class="subtitle" style="font-size:12px; margin-top:12px;">Tip: You can add any host/port! If a Docker Mongo container exists, it uses Mongo. Otherwise, it seamlessly uses memory backing!</p>
         </div>
-        <div class="error" id="nodeError"></div>
-        <p class="muted" style="margin-top:8px;">Tip: In Docker Compose, use <code>mongo4</code> port <code>27017</code>. If running on host, use <code>localhost</code> port <code>27020</code>.</p>
-    </div>
-</div>
-
-<div style="margin-top:24px; max-width:1100px;">
-    <div class="card" style="margin-bottom:24px;">
-        <h2>Storage Nodes <span class="muted">(active on ring)</span></h2>
-        <table id="nodesTable">
-            <thead><tr><th>Node</th><th>Virtual Nodes</th><th>Students</th><th>Action</th></tr></thead>
-            <tbody id="nodesBody"></tbody>
-        </table>
-        <p class="muted" style="margin-top:12px;">Vnodes per node: <span id="vnodesPerNode">150</span></p>
     </div>
 
-    <div class="card" style="margin-bottom:24px;">
-        <h2>Data Distribution</h2>
-        <table id="distTable">
-            <thead><tr><th>Node</th><th>Records</th><th>Vnodes</th></tr></thead>
-            <tbody id="distBody"></tbody>
-        </table>
-        <p class="muted" style="margin-top:12px;">Total records: <span class="stat" id="totalRecords">0</span></p>
-    </div>
-
+    <!-- Storage Nodes & Ring Info -->
     <div class="card">
-        <h2>Students <span class="muted">(click refresh after changes)</span></h2>
-        <button class="ghost" id="refreshStudents" style="margin-bottom:12px;">Refresh</button>
-        <table id="studentsTable">
-            <thead><tr><th>RollNo</th><th>Name</th><th>Dept</th><th>Year</th><th>Target Node</th></tr></thead>
-            <tbody id="studentsBody"></tbody>
+        <h2>Active Storage Nodes <span class="subtitle" style="margin:0; font-size:13px;">Virtual nodes per physical node: <strong id="vnodesPerNode" style="color:#ffffff;">150</strong></span></h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Storage Node</th>
+                    <th>Virtual Nodes</th>
+                    <th>Records Stored</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="nodesBody">
+                <tr><td colspan="4" style="color: var(--text-muted); text-align: center;">Loading storage nodes...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Data Distribution & Load Balancing -->
+    <div class="card">
+        <h2>Data Load Distribution</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Storage Node</th>
+                    <th>Records</th>
+                    <th>Data Share %</th>
+                    <th>Load Bar</th>
+                </tr>
+            </thead>
+            <tbody id="distBody">
+                <tr><td colspan="4" style="color: var(--text-muted); text-align: center;">Loading distribution data...</td></tr>
+            </tbody>
+        </table>
+        <div style="margin-top:14px; font-size:14px; color: var(--text-muted);">
+            Total Records Stored: <span class="stat" id="totalRecords">0</span>
+        </div>
+    </div>
+
+    <!-- Student Records Table -->
+    <div class="card">
+        <h2>Student Records <button class="btn-secondary" id="refreshStudentsBtn" style="padding:6px 12px; font-size:12px;">Refresh</button></h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>RollNo</th>
+                    <th>Ring Hash Value</th>
+                    <th>Name</th>
+                    <th>Dept</th>
+                    <th>Year</th>
+                    <th>Assigned Node</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="studentsBody">
+                <tr><td colspan="7" style="color: var(--text-muted); text-align: center;">No student records found. Add a student above!</td></tr>
+            </tbody>
         </table>
     </div>
 </div>
@@ -141,40 +253,66 @@
     }
 
     async function refreshNodes() {
-        const nodes = await fetchJSON(api + "/nodes");
-        const vnodes = await fetchJSON(api + "/nodes/ring");
-        const dist = await fetchJSON(api + "/distribution/counts");
-        const body = document.getElementById("nodesBody");
-        body.innerHTML = "";
-        const firstVnode = Object.values(vnodes)[0];
-        document.getElementById("vnodesPerNode").textContent = firstVnode != null ? firstVnode : 0;
-        nodes.forEach(n => {
-            const tr = document.createElement("tr");
-            const key = n.host + ":" + n.port;
-            tr.innerHTML = `<td>${key}</td>
-                <td>${vnodes[key] || 0}</td>
-                <td>${dist[key] || 0}</td>
-                <td><button class="ghost" onclick="removeNode('${n.host}', ${n.port})">Remove</button></td>`;
-            body.appendChild(tr);
-        });
+        try {
+            const nodes = await fetchJSON(api + "/nodes");
+            const vnodes = await fetchJSON(api + "/nodes/ring");
+            const dist = await fetchJSON(api + "/distribution/counts");
+            const body = document.getElementById("nodesBody");
+            body.innerHTML = "";
+
+            const firstVnode = Object.values(vnodes)[0];
+            document.getElementById("vnodesPerNode").textContent = firstVnode != null ? firstVnode : 0;
+
+            if (!nodes || nodes.length === 0) {
+                body.innerHTML = `<tr><td colspan="4" style="color: var(--text-muted); text-align: center;">No active storage nodes on the ring. Add a node above!</td></tr>`;
+                return;
+            }
+
+            nodes.forEach(n => {
+                const tr = document.createElement("tr");
+                const key = n.host + ":" + n.port;
+                tr.innerHTML = `
+                    <td><span class="badge badge-node">${key}</span></td>
+                    <td class="mono">${vnodes[key] || 0}</td>
+                    <td class="stat">${dist[key] || 0}</td>
+                    <td><button class="btn-danger" style="padding:4px 10px; font-size:12px;" onclick="removeNode('${n.host}', ${n.port})">Remove Node</button></td>
+                `;
+                body.appendChild(tr);
+            });
+        } catch (e) {
+            console.error("Error refreshing nodes", e);
+        }
     }
 
     window.removeNode = async function (host, port) {
         try {
-            await fetchJSON(api + "/nodes/" + host + "/" + port, { method: "DELETE" });
+            const report = await fetchJSON(api + "/nodes/" + host + "/" + port, { method: "DELETE" });
+            document.getElementById("nodeMsg").className = "status-msg";
+            document.getElementById("nodeMsg").textContent = `Removed node ${host}:${port}. Relocated ${report.migratedCount || 0} record(s) to remaining nodes.`;
             await refreshAll();
-        } catch (e) { document.getElementById("nodeError").textContent = e.message; }
-    }
+        } catch (e) {
+            document.getElementById("nodeMsg").className = "error-msg";
+            document.getElementById("nodeMsg").textContent = e.message;
+        }
+    };
 
     document.getElementById("addNodeBtn").addEventListener("click", async () => {
         const host = document.getElementById("nHost").value.trim();
         const port = parseInt(document.getElementById("nPort").value);
-        if (!host) return;
+        if (!host) {
+            document.getElementById("nodeMsg").className = "error-msg";
+            document.getElementById("nodeMsg").textContent = "Please specify host/node name.";
+            return;
+        }
         try {
-            await fetchJSON(api + "/nodes", { method: "POST", body: JSON.stringify({ host, port }) });
-            document.getElementById("nodeError").textContent = "";
+            const report = await fetchJSON(api + "/nodes", { method: "POST", body: JSON.stringify({ host, port }) });
+            document.getElementById("nodeMsg").className = "status-msg";
+            document.getElementById("nodeMsg").textContent = `Added node ${host}:${port} to hash ring! Migrated ${report.migratedCount || 0} record(s).`;
             await refreshAll();
-        } catch (e) { document.getElementById("nodeError").textContent = e.message; }
+        } catch (e) {
+            document.getElementById("nodeMsg").className = "error-msg";
+            document.getElementById("nodeMsg").textContent = e.message;
+        }
     });
 
     document.getElementById("addStudentBtn").addEventListener("click", async () => {
@@ -182,50 +320,111 @@
         const name = document.getElementById("sName").value.trim();
         const dept = document.getElementById("sDept").value.trim();
         const year = parseInt(document.getElementById("sYear").value);
-        if (!rollNo || !name || !dept) return;
+
+        if (!rollNo || !name || !dept) {
+            document.getElementById("studentMsg").className = "error-msg";
+            document.getElementById("studentMsg").textContent = "Please fill in RollNo, Name, and Department.";
+            return;
+        }
+
         try {
-            await fetchJSON(api + "/students", {
+            const dto = await fetchJSON(api + "/students", {
                 method: "POST",
                 body: JSON.stringify({ rollNo, name, dept, year })
             });
-            document.getElementById("studentError").textContent = "";
+            document.getElementById("studentMsg").className = "status-msg";
+            document.getElementById("studentMsg").textContent = `Student '${name}' (RollNo: ${rollNo}) added! Routed to ${dto.node}.`;
+            
             document.getElementById("sRollNo").value = "";
             document.getElementById("sName").value = "";
-            document.getElementById("sDept").value = "";
-            document.getElementById("sYear").value = "";
+
             await refreshAll();
-        } catch (e) { document.getElementById("studentError").textContent = e.message; }
+        } catch (e) {
+            document.getElementById("studentMsg").className = "error-msg";
+            document.getElementById("studentMsg").textContent = e.message;
+        }
     });
 
     async function refreshDistribution() {
-        const report = await fetchJSON(api + "/distribution");
-        const body = document.getElementById("distBody");
-        body.innerHTML = "";
-        const counts = report.counts;
-        const vnodes = report.vnodes;
-        Object.keys(counts).forEach(key => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${key}</td><td class="stat">${counts[key]}</td><td>${vnodes[key] || 0}</td>`;
-            body.appendChild(tr);
-        });
-        document.getElementById("totalRecords").textContent = report.total;
+        try {
+            const report = await fetchJSON(api + "/distribution");
+            const body = document.getElementById("distBody");
+            body.innerHTML = "";
+            const counts = report.counts || {};
+            const total = report.total || 0;
+
+            document.getElementById("totalRecords").textContent = total;
+
+            const keys = Object.keys(counts);
+            if (keys.length === 0) {
+                body.innerHTML = `<tr><td colspan="4" style="color: var(--text-muted); text-align: center;">No distribution data available.</td></tr>`;
+                return;
+            }
+
+            keys.forEach(key => {
+                const count = counts[key] || 0;
+                const pct = total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><span class="badge badge-node">${key}</span></td>
+                    <td class="stat">${count}</td>
+                    <td class="mono">${pct}%</td>
+                    <td>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${pct}%;"></div>
+                        </div>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+        } catch (e) {
+            console.error("Error refreshing distribution", e);
+        }
     }
 
     async function refreshStudents() {
-        const list = await fetchJSON(api + "/students");
-        const body = document.getElementById("studentsBody");
-        body.innerHTML = "";
-        list.forEach(s => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${s.rollNo}</td><td>${s.name}</td><td>${s.dept}</td><td>${s.year}</td><td><span class="badge badge-new">${s.node || 'N/A'}</span></td>`;
-            body.appendChild(tr);
-        });
+        try {
+            const list = await fetchJSON(api + "/students");
+            const body = document.getElementById("studentsBody");
+            body.innerHTML = "";
+
+            if (!list || list.length === 0) {
+                body.innerHTML = `<tr><td colspan="7" style="color: var(--text-muted); text-align: center;">No student records found. Add a student above!</td></tr>`;
+                return;
+            }
+
+            list.forEach(s => {
+                const tr = document.createElement("tr");
+                const hashStr = s.hashValue !== undefined ? s.hashValue : "N/A";
+                tr.innerHTML = `
+                    <td class="mono">${s.rollNo}</td>
+                    <td><span class="badge badge-hash">${hashStr}</span></td>
+                    <td>${s.name}</td>
+                    <td>${s.dept}</td>
+                    <td>Year ${s.year}</td>
+                    <td><span class="badge badge-node">${s.node || 'N/A'}</span></td>
+                    <td><button class="btn-danger" style="padding:4px 10px; font-size:12px;" onclick="deleteStudent('${s.rollNo}')">Delete</button></td>
+                `;
+                body.appendChild(tr);
+            });
+        } catch (e) {
+            console.error("Error refreshing students", e);
+        }
     }
 
-    document.getElementById("refreshStudents").addEventListener("click", refreshStudents);
+    window.deleteStudent = async function(rollNo) {
+        try {
+            await fetchJSON(api + "/students/" + rollNo, { method: "DELETE" });
+            await refreshAll();
+        } catch (e) {
+            alert("Could not delete student: " + e.message);
+        }
+    };
+
+    document.getElementById("refreshStudentsBtn").addEventListener("click", refreshStudents);
 
     refreshAll();
-    setInterval(refreshAll, 8000);
+    setInterval(refreshAll, 5000);
 </script>
 </body>
 </html>
