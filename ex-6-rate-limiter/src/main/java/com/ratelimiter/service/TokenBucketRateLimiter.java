@@ -25,27 +25,32 @@ public class TokenBucketRateLimiter {
     @Value("${app.rate-limiter.capacity:10}")
     private long defaultCapacity;
 
-    @Value("${app.rate-limiter.refill-rate:2}")
-    private long defaultRefillRate;
+    @Value("${app.rate-limiter.refill-rate:2.0}")
+    private double defaultRefillRate;
 
-    private final Map<String, long[]> customClientConfigs = new ConcurrentHashMap<>();
+    private final Map<String, double[]> customClientConfigs = new ConcurrentHashMap<>();
 
     public TokenBucketRateLimiter(RedisTemplate<String, Object> redisTemplate, RedisScript<List> tokenBucketScript) {
         this.redisTemplate = redisTemplate;
         this.tokenBucketScript = tokenBucketScript;
     }
 
-    public void setClientConfig(String clientId, long capacity, long refillRate) {
-        customClientConfigs.put(clientId, new long[]{capacity, refillRate});
+    public void setClientConfig(String clientId, long capacity, double refillRate) {
+        customClientConfigs.put(clientId, new double[]{capacity, refillRate});
+    }
+
+    public void setClientConfig(String clientId, long capacity, double refillTokens, double refillPeriodSeconds) {
+        double rate = refillPeriodSeconds > 0 ? refillTokens / refillPeriodSeconds : refillTokens;
+        setClientConfig(clientId, capacity, rate);
     }
 
     public TokenBucketStatus tryConsume(String clientId, long cost) {
         long capacity = defaultCapacity;
-        long refillRate = defaultRefillRate;
+        double refillRate = defaultRefillRate;
 
         if (customClientConfigs.containsKey(clientId)) {
-            long[] cfg = customClientConfigs.get(clientId);
-            capacity = cfg[0];
+            double[] cfg = customClientConfigs.get(clientId);
+            capacity = (long) cfg[0];
             refillRate = cfg[1];
         }
 
@@ -67,25 +72,25 @@ public class TokenBucketRateLimiter {
                 long remaining = ((Number) result.get(1)).longValue();
                 long cap = ((Number) result.get(2)).longValue();
 
-                log.info("RateLimiter client={} allowed={} remaining={} cap={}", clientId, allowed, remaining, cap);
-                return new TokenBucketStatus(allowed, remaining, cap, clientId);
+                log.info("RateLimiter client={} allowed={} remaining={} cap={} refillRate={}/s", clientId, allowed, remaining, cap, refillRate);
+                return new TokenBucketStatus(allowed, remaining, cap, refillRate, clientId);
             }
         } catch (Exception e) {
             log.error("Redis execution failed for client={}; fallback allowing request: {}", clientId, e.getMessage());
-            return new TokenBucketStatus(true, defaultCapacity, defaultCapacity, clientId);
+            return new TokenBucketStatus(true, defaultCapacity, defaultCapacity, defaultRefillRate, clientId);
         }
 
-        return new TokenBucketStatus(false, 0, capacity, clientId);
+        return new TokenBucketStatus(false, 0, capacity, refillRate, clientId);
     }
 
     public TokenBucketStatus getStatus(String clientId) {
         String key = "ratelimit:" + clientId;
         long capacity = defaultCapacity;
-        long refillRate = defaultRefillRate;
+        double refillRate = defaultRefillRate;
 
         if (customClientConfigs.containsKey(clientId)) {
-            long[] cfg = customClientConfigs.get(clientId);
-            capacity = cfg[0];
+            double[] cfg = customClientConfigs.get(clientId);
+            capacity = (long) cfg[0];
             refillRate = cfg[1];
         }
 
@@ -96,15 +101,15 @@ public class TokenBucketRateLimiter {
                 long lastRefill = Long.parseLong(values.get(1).toString());
                 long now = Instant.now().getEpochSecond();
                 long delta = Math.max(0, now - lastRefill);
-                long currentTokens = Math.min(capacity, tokens + delta * refillRate);
+                long currentTokens = Math.min(capacity, (long) (tokens + delta * refillRate));
 
-                return new TokenBucketStatus(true, currentTokens, capacity, clientId);
+                return new TokenBucketStatus(true, currentTokens, capacity, refillRate, clientId);
             }
         } catch (Exception e) {
             log.warn("Could not fetch status from Redis for client={}: {}", clientId, e.getMessage());
         }
 
-        return new TokenBucketStatus(true, capacity, capacity, clientId);
+        return new TokenBucketStatus(true, capacity, capacity, refillRate, clientId);
     }
 
     public void resetClient(String clientId) {
@@ -113,5 +118,5 @@ public class TokenBucketRateLimiter {
     }
 
     public long getDefaultCapacity() { return defaultCapacity; }
-    public long getDefaultRefillRate() { return defaultRefillRate; }
+    public double getDefaultRefillRate() { return defaultRefillRate; }
 }

@@ -52,7 +52,7 @@
         label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .row { display: flex; gap: 12px; }
-        input {
+        input, select {
             width: 100%;
             padding: 12px 16px;
             background: #18181b;
@@ -64,7 +64,7 @@
             outline: none;
             transition: border-color 0.2s;
         }
-        input:focus { border-color: #52525b; }
+        input:focus, select:focus { border-color: #52525b; }
 
         .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 
@@ -130,7 +130,7 @@
         /* Stats Grid */
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
         .stat-box { background: #18181b; padding: 14px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
-        .stat-value { font-size: 22px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #ffffff; }
+        .stat-value { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #ffffff; }
         .stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
 
         /* Table */
@@ -193,7 +193,7 @@
                 </div>
                 <div class="stat-box">
                     <div class="stat-value" id="statRefill">2/s</div>
-                    <div class="stat-label">Refill Rate</div>
+                    <div class="stat-label">Refill Speed</div>
                 </div>
             </div>
 
@@ -217,10 +217,28 @@
                     <input id="cfgCapacity" type="number" value="10" min="1">
                 </div>
                 <div class="form-group" style="flex:1;">
-                    <label>Refill Rate (tokens/sec)</label>
-                    <input id="cfgRefillRate" type="number" value="2" min="1">
+                    <label>Refill Speed Preset</label>
+                    <select id="cfgRefillPreset">
+                        <option value="0.1">1 Token every 10 Seconds (0.1/s)</option>
+                        <option value="0.2">1 Token every 5 Seconds (0.2/s)</option>
+                        <option value="1.0">1 Token every 1 Second (1.0/s)</option>
+                        <option value="2.0" selected>2 Tokens every 1 Second (Default)</option>
+                        <option value="custom">Custom (Specify Tokens & Seconds)</option>
+                    </select>
                 </div>
             </div>
+
+            <div class="row" id="customRefillRow" style="display: none; margin-top: 8px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Tokens Added</label>
+                    <input id="cfgRefillTokens" type="number" value="1" min="1">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Every N Seconds</label>
+                    <input id="cfgRefillSeconds" type="number" value="10" min="1">
+                </div>
+            </div>
+
             <div class="btn-group">
                 <button class="btn-primary" id="saveConfigBtn">Save Configuration</button>
             </div>
@@ -265,12 +283,22 @@
                 const data = await res.json();
                 const rem = data.remainingTokens;
                 const cap = data.capacity;
+                const rate = data.refillRate;
                 const pct = Math.min(100, Math.max(0, (rem / cap) * 100));
 
                 document.getElementById("gaugeFill").style.width = pct + "%";
                 document.getElementById("gaugeText").textContent = `${rem} / ${cap} Tokens`;
                 document.getElementById("statRemaining").textContent = rem;
                 document.getElementById("statCapacity").textContent = cap;
+
+                if (rate != null) {
+                    if (rate < 1.0 && rate > 0) {
+                        const sec = Math.round(1.0 / rate);
+                        document.getElementById("statRefill").textContent = `1t / ${sec}s`;
+                    } else {
+                        document.getElementById("statRefill").textContent = `${rate}/s`;
+                    }
+                }
 
                 if (pct < 20) {
                     document.getElementById("gaugeFill").style.background = "linear-gradient(90deg, #ef4444, #f59e0b)";
@@ -345,15 +373,35 @@
         await updateStatus();
     });
 
+    document.getElementById("cfgRefillPreset").addEventListener("change", (e) => {
+        const customRow = document.getElementById("customRefillRow");
+        if (e.target.value === "custom") {
+            customRow.style.display = "flex";
+        } else {
+            customRow.style.display = "none";
+        }
+    });
+
     document.getElementById("saveConfigBtn").addEventListener("click", async () => {
         const cId = document.getElementById("cfgClientId").value.trim();
         const cap = parseInt(document.getElementById("cfgCapacity").value);
-        const ref = parseInt(document.getElementById("cfgRefillRate").value);
+        const preset = document.getElementById("cfgRefillPreset").value;
+
+        let payload = { clientId: cId, capacity: cap };
+
+        if (preset === "custom") {
+            const tokens = parseFloat(document.getElementById("cfgRefillTokens").value);
+            const seconds = parseFloat(document.getElementById("cfgRefillSeconds").value);
+            payload.refillTokens = tokens;
+            payload.refillPeriodSeconds = seconds;
+        } else {
+            payload.refillRate = parseFloat(preset);
+        }
 
         const res = await fetch(`${api}/ratelimit/configure`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ clientId: cId, capacity: cap, refillRate: ref })
+            body: JSON.stringify(payload)
         });
 
         if (res.ok) {

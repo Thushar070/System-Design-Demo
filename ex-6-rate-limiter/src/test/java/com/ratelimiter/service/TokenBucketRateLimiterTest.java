@@ -54,8 +54,8 @@ class TokenBucketRateLimiterTest {
 
     @Test
     void testCustomClientConfig() {
-        rateLimiter.setClientConfig("vip_client", 50, 10);
-        when(redisTemplate.execute(eq(script), anyList(), eq("50"), eq("10"), anyString(), anyString()))
+        rateLimiter.setClientConfig("vip_client", 50, 10.0);
+        when(redisTemplate.execute(eq(script), anyList(), eq("50"), anyString(), anyString(), anyString()))
                 .thenReturn(List.of(1, 49L, 50L));
 
         TokenBucketStatus status = rateLimiter.tryConsume("vip_client", 1);
