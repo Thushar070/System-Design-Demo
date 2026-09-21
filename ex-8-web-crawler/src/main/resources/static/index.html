@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Crawler for Automated Web Content Discovery</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --success-bg: #f0fdf4;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
+            --danger: #dc2626;
+            --danger-bg: #fef2f2;
+            --purple: #7c3aed;
+            --purple-bg: #f5f3ff;
+            --radius: 10px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            padding: 24px;
+        }
+
+        .container { max-width: 1300px; margin: 0 auto; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header-title h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
+        .header-title p { font-size: 0.875rem; color: var(--text-muted); }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 9px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .badge-live { background-color: #dbeafe; color: #1e40af; }
+        .badge-redis { background-color: #fef3c7; color: #92400e; }
+        .badge-success { background-color: var(--success-bg); color: var(--success); }
+        .badge-danger { background-color: var(--danger-bg); color: var(--danger); }
+        .badge-warning { background-color: var(--warning-bg); color: var(--warning); }
+        .badge-purple { background-color: var(--purple-bg); color: var(--purple); }
+
+        .grid-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+        }
+        .stat-label { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+        .stat-value { font-size: 1.6rem; font-weight: 700; color: #0f172a; margin-top: 3px; }
+        .stat-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .card-title { font-size: 1.05rem; font-weight: 600; }
+
+        .form-group { margin-bottom: 14px; }
+        label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; color: #334155; }
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--primary); }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+        .checkbox-group {
+            display: flex;
+            gap: 16px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #334155;
+            flex-wrap: wrap;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .checkbox-label input { width: auto; }
+
+        .btn-group { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+        button {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-secondary { background: #e2e8f0; color: #334155; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-sm { padding: 4px 8px; font-size: 0.75rem; }
+
+        .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .preset-btn {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 3px 8px;
+            font-size: 0.72rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .preset-btn:hover { background: #e2e8f0; color: #1e293b; }
+
+        .single-result {
+            margin-top: 14px;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            display: none;
+        }
+
+        /* Search Explorer & Autocomplete Styles */
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            z-index: 50;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .autocomplete-item {
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .autocomplete-item:hover, .autocomplete-item.selected {
+            background-color: #f1f5f9;
+            color: var(--primary);
+        }
+        .autocomplete-count {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            background: #e2e8f0;
+            padding: 1px 6px;
+            border-radius: 9999px;
+        }
+
+        /* Category Filter Pills */
+        .category-pills {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+        .cat-pill {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .cat-pill:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .cat-pill.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
+
+        /* Discovery Summary Banner ("Fetch Everything") */
+        .discovery-banner {
+            background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
+        }
+        .discovery-banner-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .discovery-banner-title {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: #1e3a8a;
+        }
+        .discovery-stats-row {
+            display: flex;
+            gap: 14px;
+            font-size: 0.78rem;
+            color: #334155;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .discovery-tag {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            cursor: pointer;
+            color: #0284c7;
+            font-weight: 500;
+            display: inline-block;
+            margin: 2px 3px 2px 0;
+            transition: all 0.15s ease;
+        }
+        .discovery-tag:hover {
+            background: #e0f2fe;
+            border-color: #38bdf8;
+        }
+        .score-pill {
+            font-size: 0.72rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .score-composite { background: #e0e7ff; color: #3730a3; }
+        .score-pagerank { background: #fef3c7; color: #92400e; }
+        .score-bm25 { background: #dcfce7; color: #166534; }
+
+        .search-results {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        .search-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            transition: border-color 0.15s;
+        }
+        .search-card:hover { border-color: var(--primary); }
+        .search-title { font-weight: 600; font-size: 0.95rem; color: var(--primary); text-decoration: none; }
+        .search-url { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 6px 0; }
+        .search-snippet { font-size: 0.85rem; color: #334155; margin-bottom: 8px; }
+        .search-snippet mark { background: #fef08a; padding: 1px 4px; border-radius: 3px; }
+        .search-meta { display: flex; gap: 10px; font-size: 0.75rem; color: var(--text-muted); flex-wrap: wrap; align-items: center; }
+        .topic-tag { background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 500; }
+
+        .table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: #f8fafc; font-weight: 600; color: #475569; font-size: 0.78rem; }
+        tr:hover { background: #f8fafc; }
+        .url-cell { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #1e293b; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .log-box {
+            font-family: 'JetBrains Mono', monospace;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        .log-entry { margin-bottom: 4px; }
+        .log-time { color: #64748b; margin-right: 8px; }
+
+        .nav-links { display: flex; align-items: center; gap: 12px; }
+        .nav-links a { color: var(--primary); text-decoration: none; font-size: 0.82rem; font-weight: 500; }
+        .nav-links a:hover { text-decoration: underline; }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: 5% auto;
+            padding: 24px;
+            border-radius: var(--radius);
+            max-width: 750px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2);
+        }
+        .modal-close { float: right; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: var(--text-muted); }
+        .modal-close:hover { color: var(--text); }
+        .graph-canvas { width: 100%; height: 260px; background: #0f172a; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-title">
+                <h1>Web Crawler for Automated Web Content Discovery</h1>
+                <p>UCS3513 System Design Laboratory | Lab Exercise 8 | Spring Boot + Redis Queue & Content Discovery</p>
+            </div>
+            <div class="nav-links">
+                <span id="storage-badge" class="badge badge-redis">REDIS ACTIVE</span>
+                <a href="/api/crawler/export?format=json" target="_blank">Export JSON</a>
+                <a href="/api/crawler/export?format=csv" target="_blank">Export CSV</a>
+                <a href="/swagger-ui/index.html" target="_blank">Swagger Docs</a>
+                <a href="/mock-web/index.html" target="_blank">Mock Portal</a>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="grid-stats">
+            <div class="stat-card">
+                <div class="stat-label">Crawler Status</div>
+                <div class="stat-value" id="stat-status" style="color: var(--primary);">IDLE</div>
+                <div class="stat-sub" id="stat-job-id">Job: -</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pages Crawled</div>
+                <div class="stat-value" id="stat-crawled">0</div>
+                <div class="stat-sub">Target Max: <span id="stat-max-pages">50</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Queue Size</div>
+                <div class="stat-value" id="stat-queue">0</div>
+                <div class="stat-sub">Frontier Tasks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Visited Set</div>
+                <div class="stat-value" id="stat-visited">0</div>
+                <div class="stat-sub">Unique URLs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">URL Duplicates</div>
+                <div class="stat-value" id="stat-duplicates" style="color: var(--warning);">0</div>
+                <div class="stat-sub">Loops Prevented</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Content Duplicates</div>
+                <div class="stat-value" id="stat-content-dedup" style="color: var(--purple);">0</div>
+                <div class="stat-sub">Checksum Clones</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Robots Excluded</div>
+                <div class="stat-value" id="stat-robots" style="color: var(--danger);">0</div>
+                <div class="stat-sub">Disallow Rules</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Sitemaps Read</div>
+                <div class="stat-value" id="stat-sitemaps" style="color: var(--success);">0</div>
+                <div class="stat-sub">XML Seeds Added</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Throughput</div>
+                <div class="stat-value" id="stat-throughput">0.0</div>
+                <div class="stat-sub">Pages / sec</div>
+            </div>
+        </div>
+
+        <!-- Control and Single-Crawl Section -->
+        <div class="main-grid">
+            <!-- Crawl Job Configuration -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">1. Asynchronous Crawl Job Manager</span>
+                </div>
+                <div class="form-group">
+                    <label>Seed URL(s)</label>
+                    <input type="text" id="input-seed" value="http://localhost:8080/mock-web/index.html">
+                    <div class="presets">
+                        <span class="preset-btn" onclick="setSeed('http://localhost:8080/mock-web/index.html')">Root Portal</span>
+                        <span class="preset-btn" onclick="setSeed('http://localhost:8080/mock-web/tech.html')">Tech Hub</span>
+                        <span class="preset-btn" onclick="setSeed('http://localhost:8080/mock-web/sports.html')">Sports Portal</span>
+                        <span class="preset-btn" onclick="setSeed('http://localhost:8080/mock-web/cyclic-a.html')">Cyclic Graph Loop</span>
+                        <span class="preset-btn" onclick="setSeed('http://localhost:8080/mock-web/duplicate-article-1.html')">Near-Duplicate Test</span>
+                        <span class="preset-btn" onclick="setSeed('http://localhost:8080/mock-web/external-links.html')">Domain Boundary Test</span>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Max Depth</label>
+                        <input type="number" id="input-depth" value="3" min="1" max="10">
+                    </div>
+                    <div class="form-group">
+                        <label>Max Pages</label>
+                        <input type="number" id="input-max-pages" value="50" min="1" max="200">
+                    </div>
+                    <div class="form-group">
+                        <label>Worker Threads</label>
+                        <input type="number" id="input-workers" value="4" min="1" max="16">
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="check-robots" checked> Obey robots.txt
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="check-sitemaps" checked> Sitemap Discovery
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="check-dedup" checked> Checksum Deduplication
+                    </label>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="startCrawl()">Start Crawling</button>
+                    <button class="btn-danger" onclick="stopCrawl()">Stop Crawler</button>
+                    <button class="btn-secondary" onclick="resetCrawler()">Reset State</button>
+                </div>
+            </div>
+
+            <!-- Single URL Tester & Cache Benchmark -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">2. Synchronous Single URL & Cache Benchmark</span>
+                </div>
+                <div class="form-group">
+                    <label>Target URL to Crawl & Inspect</label>
+                    <input type="text" id="input-single-url" value="http://localhost:8080/mock-web/index.html">
+                    <div class="presets">
+                        <span class="preset-btn" onclick="setSingleUrl('http://localhost:8080/mock-web/index.html')">Root Portal</span>
+                        <span class="preset-btn" onclick="setSingleUrl('http://localhost:8080/mock-web/tech.html')">Tech</span>
+                        <span class="preset-btn" onclick="setSingleUrl('http://localhost:8080/mock-web/ai.html')">AI Subpage</span>
+                        <span class="preset-btn" onclick="setSingleUrl('http://localhost:8080/mock-web/private-admin.html')">Private Admin</span>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="crawlSingle()">Crawl & Benchmark URL</button>
+
+                <div class="single-result" id="single-result-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <b id="res-title" style="font-size: 0.95rem;">Page Title</b>
+                        <span id="res-badge" class="badge badge-success">200 OK</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                        <div>Source: <b id="res-source" style="color: var(--primary);">LIVE_FETCH</b></div>
+                        <div>Fetch Time: <b id="res-time">12 ms</b></div>
+                        <div>Content Size: <b id="res-size">1,024 bytes</b></div>
+                        <div>Links Found: <b id="res-links-count">4</b></div>
+                    </div>
+                    <div id="res-links-list" style="margin-top: 8px; font-size: 0.72rem; max-height: 70px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; color: #334155;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Automated Web Content Discovery & Full-Text Search Section -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <span class="card-title">3. Automated Content Discovery & Search Engine</span>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">Inverted Index Ranking, Okapi BM25, and Google PageRank Authority over Crawled Body Text & Metadata</div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span class="badge badge-purple" id="index-stats-badge">INVERTED INDEX ACTIVE</span>
+                </div>
+            </div>
+
+            <!-- Search Inputs and Ranking Selector -->
+            <div class="search-container">
+                <div style="flex: 1; position: relative;">
+                    <input type="text" id="search-input" placeholder="Search crawled web content (e.g. 'quantum', 'computing', 'neural', 'sports', 'cricket', 'algorithms')..." autocomplete="off" oninput="handleAutocomplete(this.value)" onkeyup="if(event.key==='Enter') executeSearch()" onkeydown="handleSearchKeyDown(event)">
+                    <div id="autocomplete-box" class="autocomplete-dropdown" style="display: none;"></div>
+                </div>
+                <select id="search-sort" style="width: 210px;" onchange="executeSearch()">
+                    <option value="COMPOSITE">Rank: Composite (BM25 + PageRank)</option>
+                    <option value="PAGERANK">Rank: PageRank Authority</option>
+                    <option value="BM25">Rank: BM25 Relevance</option>
+                    <option value="WORDS">Sort: Longest (Word Count)</option>
+                    <option value="NEWEST">Sort: Newest Crawled</option>
+                </select>
+                <button class="btn-primary" onclick="executeSearch()">Search Content</button>
+            </div>
+
+            <!-- Category Filter Pills -->
+            <div class="category-pills" id="category-pills">
+                <span class="cat-pill active" data-cat="" onclick="setCategoryFilter('')">All Categories</span>
+                <span class="cat-pill" data-cat="Quantum Computing" onclick="setCategoryFilter('Quantum Computing')">Quantum Computing</span>
+                <span class="cat-pill" data-cat="Artificial Intelligence" onclick="setCategoryFilter('Artificial Intelligence')">Artificial Intelligence</span>
+                <span class="cat-pill" data-cat="Cloud & Infrastructure" onclick="setCategoryFilter('Cloud & Infrastructure')">Cloud & Infrastructure</span>
+                <span class="cat-pill" data-cat="Sports & Athletics" onclick="setCategoryFilter('Sports & Athletics')">Sports & Athletics</span>
+                <span class="cat-pill" data-cat="Science & Research" onclick="setCategoryFilter('Science & Research')">Science & Research</span>
+                <span class="cat-pill" data-cat="World News" onclick="setCategoryFilter('World News')">World News</span>
+            </div>
+
+            <!-- Aggregated Discovery Summary Banner ("Fetch Everything") -->
+            <div id="discovery-banner" class="discovery-banner" style="display: none;">
+                <div class="discovery-banner-header">
+                    <div class="discovery-banner-title">
+                        🔍 Automated Corpus Discovery Overview for "<span id="banner-query" style="color: var(--primary); font-weight: 700;"></span>"
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <span class="badge badge-live" id="banner-matches">0 Matches</span>
+                        <span class="badge badge-purple" id="banner-occurrences">0 Mentions</span>
+                        <span class="badge badge-success" id="banner-time">0 ms</span>
+                    </div>
+                </div>
+                <div class="discovery-stats-row">
+                    <div><b>Category Breakdown:</b> <span id="banner-categories">None</span></div>
+                </div>
+                <div class="discovery-stats-row" style="margin-top: 6px;">
+                    <div><b>Related Topics / Expanded Terms:</b> <span id="banner-related-keywords">None</span></div>
+                </div>
+            </div>
+
+            <div id="search-status-bar" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; display: none;"></div>
+            
+            <div class="search-results" id="search-results-list">
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+                    Start a crawl above, then enter keywords or click autocomplete suggestions to discover and search indexed web content.
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Link Graph Topology Visualizer & PageRank Authority -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <span class="card-title">4. Discovered Link Graph & PageRank Authority Distribution</span>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">Node radii scale dynamically with Google PageRank score (damping factor d=0.85)</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-secondary btn-sm" onclick="recomputePageRank()">Recompute PageRank</button>
+                    <button class="btn-secondary btn-sm" onclick="drawGraph()">Redraw Graph</button>
+                </div>
+            </div>
+            <canvas id="graphCanvas" class="graph-canvas"></canvas>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; gap: 16px; font-size: 0.72rem; color: var(--text-muted);">
+                    <span><span style="color: #38bdf8;">●</span> Seed (Root)</span>
+                    <span><span style="color: #4ade80;">●</span> Discovered Page (200 OK)</span>
+                    <span><span style="color: #f87171;">●</span> Error / Disallowed</span>
+                    <span><span style="color: #c084fc;">●</span> Duplicate Content</span>
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">
+                    Larger circles = higher link authority (PageRank)
+                </div>
+            </div>
+
+            <!-- PageRank Authority Leaderboard -->
+            <div style="margin-top: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 0.85rem; font-weight: 600; color: #334155;">Top Authoritative Pages (PageRank Leaderboard)</span>
+                    <span id="pagerank-stats-info" style="font-size: 0.72rem; color: var(--text-muted);">Power Iteration: d=0.85, ε=1e-4</span>
+                </div>
+                <div style="max-height: 180px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 45px;">Rank</th>
+                                <th>Page Title & URL</th>
+                                <th style="width: 150px;">Category</th>
+                                <th style="width: 110px;">PageRank Score</th>
+                                <th style="width: 140px;">Authority Level</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pagerank-leaderboard-body">
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Run crawl to generate PageRank link graph.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Discovered & Crawled Pages Table -->
+        <div class="table-card">
+            <div class="card-header">
+                <span class="card-title">5. Crawled Pages Collection (Redis Cache & In-Memory Store)</span>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-secondary btn-sm" onclick="refreshPages()">Refresh Table</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">#</th>
+                        <th>URL</th>
+                        <th>Page Title</th>
+                        <th style="width: 70px;">Status</th>
+                        <th style="width: 50px;">Depth</th>
+                        <th style="width: 70px;">Words</th>
+                        <th style="width: 80px;">Content</th>
+                        <th style="width: 80px;">Links</th>
+                        <th style="width: 80px;">Latency</th>
+                        <th style="width: 80px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="pages-table-body">
+                    <tr><td colspan="10" style="text-align: center; color: var(--text-muted);">No pages crawled yet. Click 'Start Crawling' above.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Live Activity Log -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">6. Live Crawler Activity Log</span>
+                <button class="btn-secondary btn-sm" onclick="document.getElementById('log-box').innerHTML=''">Clear Log</button>
+            </div>
+            <div class="log-box" id="log-box">
+                <div class="log-entry"><span class="log-time">[READY]</span> Web Crawler & Content Discovery engine initialized.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Details Modal -->
+    <div id="pageModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <h3 id="modal-title" style="margin-bottom: 8px;">Page Details</h3>
+            <p id="modal-url" style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--primary); margin-bottom: 12px; word-break: break-all;"></p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; font-size: 0.8rem; background: #f8fafc; padding: 10px; border-radius: 6px;">
+                <div><b>Word Count:</b> <span id="modal-words">0</span> words</div>
+                <div><b>Read Time:</b> ~<span id="modal-read-time">1</span> min</div>
+                <div><b>Content Hash:</b> <span id="modal-hash" style="font-family: monospace; font-size: 0.75rem;">-</span></div>
+                <div><b>Duplicate:</b> <span id="modal-duplicate">No</span></div>
+                <div style="grid-column: span 2;"><b>Author / Meta Description:</b> <span id="modal-meta-desc">None</span></div>
+                <div style="grid-column: span 2;"><b>Extracted Topics:</b> <span id="modal-keywords">-</span></div>
+            </div>
+
+            <h4 style="font-size: 0.9rem; margin-bottom: 6px;">Headings Outline</h4>
+            <div id="modal-headings" style="font-size: 0.8rem; margin-bottom: 12px; color: #334155;"></div>
+
+            <h4 style="font-size: 0.9rem; margin-bottom: 6px;">Clean Text Excerpt</h4>
+            <div id="modal-text" style="font-size: 0.8rem; background: #f1f5f9; padding: 10px; border-radius: 6px; max-height: 140px; overflow-y: auto; white-space: pre-wrap; margin-bottom: 12px;"></div>
+
+            <h4 style="font-size: 0.9rem; margin-bottom: 6px;">Discovered Outbound Links</h4>
+            <div id="modal-links" style="font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; max-height: 120px; overflow-y: auto; color: #475569;"></div>
+        </div>
+    </div>
+
+    <script>
+        let pollTimer = null;
+        let crawledPagesData = [];
+        let currentCategoryFilter = '';
+        let autocompleteDebounceTimer = null;
+
+        function setSeed(url) { document.getElementById('input-seed').value = url; }
+        function setSingleUrl(url) { document.getElementById('input-single-url').value = url; }
+
+        function log(msg) {
+            const box = document.getElementById('log-box');
+            const now = new Date().toLocaleTimeString();
+            box.innerHTML += `<div class="log-entry"><span class="log-time">[${now}]</span> ${msg}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function updateStatus() {
+            try {
+                const res = await fetch('/api/crawler/status');
+                const data = await res.json();
+                document.getElementById('stat-status').innerText = data.status;
+                document.getElementById('stat-job-id').innerText = 'Job: ' + data.jobId;
+                document.getElementById('stat-crawled').innerText = data.totalCrawled;
+                document.getElementById('stat-queue').innerText = data.queueSize;
+                document.getElementById('stat-visited').innerText = data.visitedCount;
+                document.getElementById('stat-duplicates').innerText = data.duplicateUrlsAvoided;
+                document.getElementById('stat-content-dedup').innerText = data.duplicateContentAvoided || 0;
+                document.getElementById('stat-robots').innerText = data.robotsDisallowedCount || 0;
+                document.getElementById('stat-sitemaps').innerText = data.sitemapsDiscovered || 0;
+                document.getElementById('stat-throughput').innerText = data.throughputPagesPerSec.toFixed(1);
+                document.getElementById('storage-badge').innerText = data.storageMode + ' ACTIVE';
+
+                if (data.status === 'RUNNING') {
+                    document.getElementById('stat-status').style.color = 'var(--success)';
+                } else if (data.status === 'COMPLETED') {
+                    document.getElementById('stat-status').style.color = 'var(--primary)';
+                } else {
+                    document.getElementById('stat-status').style.color = 'var(--text-muted)';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function startCrawl() {
+            const seed = document.getElementById('input-seed').value.trim();
+            const depth = parseInt(document.getElementById('input-depth').value) || 3;
+            const maxPages = parseInt(document.getElementById('input-max-pages').value) || 50;
+            const workers = parseInt(document.getElementById('input-workers').value) || 4;
+            const respectRobots = document.getElementById('check-robots').checked;
+            const discoverSitemaps = document.getElementById('check-sitemaps').checked;
+            const detectDedup = document.getElementById('check-dedup').checked;
+
+            log(`Initiating crawl job with seed: ${seed} | Max Depth: ${depth} | Target: ${maxPages} pages`);
+
+            const payload = {
+                seedUrls: [seed],
+                maxDepth: depth,
+                maxPages: maxPages,
+                workers: workers,
+                politenessDelayMs: 40,
+                respectRobotsTxt: respectRobots,
+                discoverSitemaps: discoverSitemaps,
+                detectDuplicateContent: detectDedup
+            };
+
+            const res = await fetch('/api/crawler/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            log(`Crawler started. Job ID: ${data.jobId}`);
+
+            if (!pollTimer) {
+                pollTimer = setInterval(() => {
+                    updateStatus();
+                    refreshPages();
+                }, 1000);
+            }
+        }
+
+        async function stopCrawl() {
+            const res = await fetch('/api/crawler/stop', { method: 'POST' });
+            const data = await res.json();
+            log(`Crawler stopped manually.`);
+            updateStatus();
+        }
+
+        async function resetCrawler() {
+            const res = await fetch('/api/crawler/reset', { method: 'POST' });
+            log(`Crawler queues, visited sets, search index, and cache cleared.`);
+            updateStatus();
+            refreshPages();
+            crawledPagesData = [];
+            drawGraph();
+            updatePageRankLeaderboard();
+            document.getElementById('discovery-banner').style.display = 'none';
+            document.getElementById('search-status-bar').style.display = 'none';
+            document.getElementById('search-results-list').innerHTML = `
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+                    Start a crawl above, then enter keywords or click autocomplete suggestions to discover and search indexed web content.
+                </div>`;
+        }
+
+        async function crawlSingle() {
+            const url = document.getElementById('input-single-url').value.trim();
+            log(`Synchronously fetching URL: ${url}`);
+            const t0 = performance.now();
+            const res = await fetch(`/api/crawler/crawl-single?url=${encodeURIComponent(url)}`, { method: 'POST' });
+            const data = await res.json();
+            const rtt = Math.round(performance.now() - t0);
+
+            const box = document.getElementById('single-result-box');
+            box.style.display = 'block';
+            document.getElementById('res-title').innerText = data.title;
+            document.getElementById('res-source').innerText = data.source;
+            document.getElementById('res-source').style.color = data.source === 'REDIS_CACHE' ? 'var(--success)' : 'var(--primary)';
+            document.getElementById('res-time').innerText = `${data.crawlTimeMs} ms (RTT: ${rtt} ms)`;
+            document.getElementById('res-size').innerText = `${data.contentLength} bytes`;
+            document.getElementById('res-links-count').innerText = data.linksCount;
+            document.getElementById('res-badge').innerText = data.statusCode + (data.statusCode === 200 ? ' OK' : ' ERR');
+            document.getElementById('res-badge').className = 'badge ' + (data.statusCode === 200 ? 'badge-success' : 'badge-danger');
+
+            const linksDiv = document.getElementById('res-links-list');
+            linksDiv.innerHTML = data.links.map(l => `<div>• ${l}</div>`).join('');
+
+            log(`Single crawl complete [${data.source}]: ${data.title} (${data.crawlTimeMs}ms)`);
+            updateStatus();
+        }
+
+        /* Autocomplete Handlers */
+        function handleAutocomplete(val) {
+            clearTimeout(autocompleteDebounceTimer);
+            const box = document.getElementById('autocomplete-box');
+            const prefix = val.trim();
+            if (prefix.length < 2) {
+                box.style.display = 'none';
+                box.innerHTML = '';
+                return;
+            }
+            autocompleteDebounceTimer = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/crawler/autocomplete?prefix=${encodeURIComponent(prefix)}&limit=7`);
+                    const suggestions = await res.json();
+                    if (!suggestions || suggestions.length === 0) {
+                        box.style.display = 'none';
+                        box.innerHTML = '';
+                        return;
+                    }
+                    box.innerHTML = suggestions.map(s => `
+                        <div class="autocomplete-item" onclick="selectAutocomplete('${s.term}')">
+                            <span><b>${s.term}</b></span>
+                            <span class="autocomplete-count">${s.frequency} docs</span>
+                        </div>
+                    `).join('');
+                    box.style.display = 'block';
+                } catch (e) {
+                    console.error('Autocomplete error:', e);
+                }
+            }, 180);
+        }
+
+        function selectAutocomplete(term) {
+            document.getElementById('search-input').value = term;
+            document.getElementById('autocomplete-box').style.display = 'none';
+            executeSearch();
+        }
+
+        function handleSearchKeyDown(e) {
+            if (e.key === 'Escape') {
+                document.getElementById('autocomplete-box').style.display = 'none';
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            const box = document.getElementById('autocomplete-box');
+            const input = document.getElementById('search-input');
+            if (box && e.target !== input && !box.contains(e.target)) {
+                box.style.display = 'none';
+            }
+        });
+
+        /* Category Filter Handler */
+        function setCategoryFilter(cat) {
+            currentCategoryFilter = cat;
+            const pills = document.querySelectorAll('.cat-pill');
+            pills.forEach(p => {
+                if (p.getAttribute('data-cat') === cat) {
+                    p.classList.add('active');
+                } else {
+                    p.classList.remove('active');
+                }
+            });
+            executeSearch();
+        }
+
+        /* Search Execution ("Fetch Everything" & Ranking) */
+        async function executeSearch(optQuery) {
+            if (optQuery !== undefined) {
+                document.getElementById('search-input').value = optQuery;
+            }
+            const query = document.getElementById('search-input').value.trim();
+            if (!query && !currentCategoryFilter) return;
+
+            document.getElementById('autocomplete-box').style.display = 'none';
+            const sortBy = document.getElementById('search-sort').value;
+            const catParam = currentCategoryFilter ? `&category=${encodeURIComponent(currentCategoryFilter)}` : '';
+
+            try {
+                const res = await fetch(`/api/crawler/search?q=${encodeURIComponent(query)}&sortBy=${encodeURIComponent(sortBy)}${catParam}`);
+                const data = await res.json();
+
+                // Update Discovery Summary Banner ("Fetch Everything")
+                const banner = document.getElementById('discovery-banner');
+                if (banner) {
+                    document.getElementById('banner-query').innerText = data.query || (currentCategoryFilter ? `[Category: ${currentCategoryFilter}]` : '*');
+                    document.getElementById('banner-matches').innerText = `${data.totalMatches} Pages Matched`;
+                    document.getElementById('banner-occurrences').innerText = `${data.totalOccurrencesInCorpus} Mentions Across Corpus`;
+                    document.getElementById('banner-time').innerText = `${data.searchTimeMs} ms`;
+
+                    // Category breakdown tags
+                    const catDiv = document.getElementById('banner-categories');
+                    if (data.categoryDistribution && Object.keys(data.categoryDistribution).length > 0) {
+                        catDiv.innerHTML = Object.entries(data.categoryDistribution).map(([cat, count]) => `
+                            <span class="discovery-tag" onclick="setCategoryFilter('${cat}')">${cat} (${count})</span>
+                        `).join(' ');
+                    } else {
+                        catDiv.innerHTML = '<i>None</i>';
+                    }
+
+                    // Related keywords tags
+                    const relDiv = document.getElementById('banner-related-keywords');
+                    if (data.relatedKeywords && data.relatedKeywords.length > 0) {
+                        relDiv.innerHTML = data.relatedKeywords.map(k => `
+                            <span class="discovery-tag" onclick="executeSearch('${k}')">#${k}</span>
+                        `).join(' ');
+                    } else {
+                        relDiv.innerHTML = '<i>None</i>';
+                    }
+                    banner.style.display = 'block';
+                }
+
+                const statusBar = document.getElementById('search-status-bar');
+                statusBar.style.display = 'block';
+                statusBar.innerText = `Ranked ${data.totalMatches} results in ${data.searchTimeMs} ms using ${data.rankingMode} scoring model`;
+
+                const list = document.getElementById('search-results-list');
+                if (!data.results || data.results.length === 0) {
+                    list.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 24px;">No discovered content matched "${query}". Try related keywords or choose another category filter.</div>`;
+                    return;
+                }
+
+                list.innerHTML = data.results.map(r => `
+                    <div class="search-card">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                            <a href="${r.url}" target="_blank" class="search-title">${r.title}</a>
+                            <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                                <span class="score-pill score-composite" title="Combined Ranking Score">Score: ${r.relevanceScore.toFixed(2)}</span>
+                                <span class="score-pill score-bm25" title="Okapi BM25 Term Relevance">BM25: ${r.bm25Score.toFixed(2)}</span>
+                                <span class="score-pill score-pagerank" title="Google PageRank Authority">PR: ${r.pageRankScore.toFixed(1)}</span>
+                            </div>
+                        </div>
+                        <div class="search-url">${r.url}</div>
+                        <div class="search-snippet">${r.snippet}</div>
+                        <div class="search-meta">
+                            <span class="badge ${r.category ? 'badge-live' : 'badge-redis'}">${r.category || 'General'}</span>
+                            <span>Words: <b>${r.wordCount}</b></span>
+                            <span>Read Time: ~<b>${r.readingTimeMinutes} min</b></span>
+                            <span>Depth: <b>${r.depth}</b></span>
+                            <span>Occurrences: <b>${r.matchOccurrences || 1}×</b></span>
+                            ${r.matchedTerms ? r.matchedTerms.map(t => `<span class="topic-tag">${t}</span>`).join('') : ''}
+                        </div>
+                        ${r.scoreBreakdown ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 6px; font-family: monospace;">Formula: ${r.scoreBreakdown}</div>` : ''}
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Search execution failed:', e);
+            }
+        }
+
+        async function recomputePageRank() {
+            log('Recomputing Google PageRank link authority across discovered pages...');
+            try {
+                const res = await fetch('/api/crawler/pagerank/recompute', { method: 'POST' });
+                const data = await res.json();
+                log(`PageRank power iteration converged for ${data.totalPagesScored} pages.`);
+                await updatePageRankLeaderboard();
+                await refreshPages();
+            } catch (e) {
+                console.error('Recompute PageRank error:', e);
+            }
+        }
+
+        async function updatePageRankLeaderboard() {
+            try {
+                const res = await fetch('/api/crawler/pagerank');
+                const data = await res.json();
+                const tbody = document.getElementById('pagerank-leaderboard-body');
+                if (!data.leaderboard || data.leaderboard.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No pages discovered for PageRank graph yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.leaderboard.slice(0, 8).map((item, idx) => `
+                    <tr>
+                        <td><b>#${idx + 1}</b></td>
+                        <td>
+                            <div style="font-weight: 600; font-size: 0.82rem;">${item.title}</div>
+                            <div class="url-cell" style="max-width: 320px;" title="${item.url}">${item.url}</div>
+                        </td>
+                        <td><span class="badge badge-live">${item.category || 'General'}</span></td>
+                        <td><b>${item.pageRankScore.toFixed(2)}</b> <span style="font-size: 0.7rem; color: var(--text-muted);">/ 100</span></td>
+                        <td>
+                            <div style="width: 100%; background: #e2e8f0; border-radius: 4px; height: 7px; overflow: hidden;">
+                                <div style="width: ${Math.min(100, Math.max(8, item.pageRankScore))}%; background: var(--primary); height: 7px;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Error updating PageRank leaderboard:', e);
+            }
+        }
+
+        async function refreshPages() {
+            try {
+                const res = await fetch('/api/crawler/pages');
+                const pages = await res.json();
+                crawledPagesData = pages;
+                const tbody = document.getElementById('pages-table-body');
+                if (pages.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-muted);">No pages crawled yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = pages.map((p, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td class="url-cell" title="${p.url}">${p.url}</td>
+                        <td><b>${p.title}</b></td>
+                        <td><span class="badge ${p.statusCode === 200 ? 'badge-success' : 'badge-danger'}">${p.statusCode}</span></td>
+                        <td>${p.depth}</td>
+                        <td>${p.wordCount || 0}</td>
+                        <td>
+                            ${p.duplicateContent 
+                                ? '<span class="badge badge-purple" title="Duplicate of ' + p.duplicateOfUrl + '">CLONE</span>' 
+                                : '<span class="badge badge-success">ORIGINAL</span>'}
+                        </td>
+                        <td><b>${p.outboundLinksCount}</b></td>
+                        <td>${p.crawlTimeMs} ms</td>
+                        <td><button class="btn-secondary btn-sm" onclick="inspectPage('${encodeURIComponent(p.url)}')">Inspect</button></td>
+                    </tr>
+                `).join('');
+                drawGraph();
+                updatePageRankLeaderboard();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function inspectPage(encUrl) {
+            const url = decodeURIComponent(encUrl);
+            const page = crawledPagesData.find(p => p.url === url);
+            if (!page) return;
+
+            document.getElementById('modal-title').innerText = page.title;
+            document.getElementById('modal-url').innerText = page.url;
+            document.getElementById('modal-words').innerText = page.wordCount || 0;
+            document.getElementById('modal-read-time').innerText = page.readingTimeMinutes || 1;
+            document.getElementById('modal-hash').innerText = page.contentHash ? page.contentHash.substring(0, 16) + '...' : 'N/A';
+            document.getElementById('modal-duplicate').innerText = page.duplicateContent ? `Yes (Duplicate of ${page.duplicateOfUrl})` : 'No (Original)';
+            document.getElementById('modal-meta-desc').innerText = page.metaDescription || '(None)';
+            document.getElementById('modal-keywords').innerHTML = page.topKeywords && page.topKeywords.length > 0
+                ? page.topKeywords.map(k => `<span class="topic-tag">${k}</span>`).join(' ')
+                : 'None';
+
+            const headingsDiv = document.getElementById('modal-headings');
+            headingsDiv.innerHTML = page.headings && page.headings.length > 0
+                ? page.headings.map(h => `<div>• ${h}</div>`).join('')
+                : '<i>No headings found</i>';
+
+            document.getElementById('modal-text').innerText = page.cleanText || '(No clean text extracted)';
+
+            const linksDiv = document.getElementById('modal-links');
+            linksDiv.innerHTML = page.discoveredLinks && page.discoveredLinks.length > 0
+                ? page.discoveredLinks.map(l => `<div>↳ ${l}</div>`).join('')
+                : '<i>No outbound links</i>';
+
+            document.getElementById('pageModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('pageModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('pageModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        function drawGraph() {
+            const canvas = document.getElementById('graphCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.clientWidth - 40;
+            canvas.height = 260;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!crawledPagesData || crawledPagesData.length === 0) {
+                ctx.fillStyle = '#64748b';
+                ctx.font = '13px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('Link network graph will render dynamically as pages are discovered.', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+
+            const n = crawledPagesData.length;
+            const radius = Math.min(canvas.width, canvas.height) * 0.38;
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            const nodes = crawledPagesData.map((p, i) => {
+                const angle = (i / n) * 2 * Math.PI;
+                return {
+                    url: p.url,
+                    title: p.title,
+                    isDuplicate: p.duplicateContent,
+                    isSeed: p.depth === 0,
+                    isError: p.statusCode >= 400,
+                    outbound: p.discoveredLinks || [],
+                    pageRankScore: p.pageRankScore || 0,
+                    x: cx + radius * Math.cos(angle),
+                    y: cy + radius * Math.sin(angle)
+                };
+            });
+
+            // Draw edges
+            ctx.lineWidth = 1;
+            nodes.forEach(src => {
+                src.outbound.forEach(linkUrl => {
+                    const target = nodes.find(dst => dst.url === linkUrl);
+                    if (target) {
+                        ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+                        ctx.beginPath();
+                        ctx.moveTo(src.x, src.y);
+                        ctx.lineTo(target.x, target.y);
+                        ctx.stroke();
+                    }
+                });
+            });
+
+            // Draw nodes with PageRank-proportional radius
+            nodes.forEach(node => {
+                const pr = node.pageRankScore || 0;
+                const nodeRadius = node.isSeed ? 9 : Math.max(5, Math.min(18, 5 + pr * 0.18));
+
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI);
+                if (node.isSeed) {
+                    ctx.fillStyle = '#38bdf8'; // Blue
+                } else if (node.isError) {
+                    ctx.fillStyle = '#f87171'; // Red
+                } else if (node.isDuplicate) {
+                    ctx.fillStyle = '#c084fc'; // Purple
+                } else {
+                    ctx.fillStyle = '#4ade80'; // Green
+                }
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Draw label for seed or high-authority nodes
+                if (node.isSeed || pr > 20) {
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.font = '10px Inter';
+                    ctx.textAlign = 'left';
+                    const shortName = (node.title && node.title.length > 16 ? node.title.substring(0, 16) + '...' : (node.title || 'Page'));
+                    ctx.fillText(`${shortName} (PR:${pr.toFixed(0)})`, node.x + nodeRadius + 4, node.y + 3);
+                }
+            });
+        }
+
+        // Initialize on load
+        updateStatus();
+        refreshPages();
+        updatePageRankLeaderboard();
+        setInterval(updateStatus, 2500);
+    </script>
+</body>
+</html>
